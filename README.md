@@ -1,2 +1,4 @@
 # math-html-lesson
-https://github.com/ssj-simon/math-html-lesson/raw/main/grade4%3A5.html
+
+https://ssj-simon.github.io/math-html-lesson/grade67.html
+https://ssj-simon.github.io/math-html-lesson/grade45.html
