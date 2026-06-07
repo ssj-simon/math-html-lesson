@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Buffon's Needle Interactive Demo</title>
+<style>
+  :root{
+    --bg:#f7f5ef;
+    --card:#ffffff;
+    --ink:#222;
+    --muted:#5f6368;
+    --line:#d9d3c7;
+    --accent:#2f6f9f;
+    --accent2:#b5533c;
+    --hit:#c0392b;
+    --miss:#34495e;
+    --soft:#edf4f8;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: Georgia, "Times New Roman", serif;
+    background:var(--bg);
+    color:var(--ink);
+  }
+  header{
+    padding:22px 32px 16px;
+    border-bottom:1px solid var(--line);
+    background:#fffdf7;
+    position:sticky;
+    top:0;
+    z-index:20;
+  }
+  h1{margin:0 0 8px;font-size:34px;letter-spacing:.2px}
+  .subtitle{font-family:Arial, sans-serif;color:var(--muted);font-size:15px}
+  nav{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap}
+  button, select, input[type="number"], input[type="range"]{
+    font-family:Arial, sans-serif;
+  }
+  .tabBtn,.actionBtn{
+    border:1px solid #b8c5cf;
+    background:white;
+    color:var(--ink);
+    border-radius:10px;
+    padding:9px 14px;
+    cursor:pointer;
+    font-size:15px;
+  }
+  .tabBtn.active,.actionBtn.primary{
+    background:var(--accent);
+    color:white;
+    border-color:var(--accent);
+  }
+  .actionBtn.danger{border-color:#d8a59a;color:#8f2f21;background:#fff7f5}
+  main{padding:24px 32px 38px;max-width:1280px;margin:auto}
+  .page{display:none}
+  .page.active{display:block}
+  .grid{display:grid;grid-template-columns: minmax(420px, 1fr) 360px;gap:22px;align-items:start}
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:18px;
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+    padding:20px;
+  }
+  h2{font-size:27px;margin:0 0 12px}
+  h3{font-size:21px;margin:20px 0 10px}
+  p{line-height:1.5;font-size:18px;margin:10px 0}
+  .formula{
+    font-size:23px;
+    background:var(--soft);
+    border-left:5px solid var(--accent);
+    padding:14px 18px;
+    border-radius:10px;
+    margin:14px 0;
+    overflow-x:auto;
+  }
+  .math{
+    font-family: Georgia, "Times New Roman", serif;
+    font-style: italic;
+    white-space: nowrap;
+  }
+  .math .roman{font-style:normal;}
+  .frac{
+    display:inline-grid;
+    grid-template-rows:auto auto;
+    align-items:center;
+    justify-items:center;
+    vertical-align:middle;
+    margin:0 .15em;
+    line-height:1.05;
+  }
+  .frac .top{
+    border-bottom:1.7px solid currentColor;
+    padding:0 .25em .08em;
+  }
+  .frac .bottom{
+    padding:.08em .25em 0;
+  }
+  .formula b, .keypoints b{font-weight:700;}
+  .small{font-family:Arial, sans-serif;color:var(--muted);font-size:14px;line-height:1.35}
+  .controls{display:grid;gap:12px;margin-top:12px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  label{font-family:Arial, sans-serif;font-size:14px;color:#333}
+  input[type="number"]{width:92px;padding:8px;border:1px solid #ccd1d5;border-radius:8px}
+  input[type="range"]{width:100%}
+  canvas{
+    width:100%;
+    background:#fffaf1;
+    border:1px solid #d6cec0;
+    border-radius:14px;
+    display:block;
+  }
+  .stats{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:12px;
+    font-family:Arial, sans-serif;
+  }
+  .statBox{
+    padding:12px;
+    background:#fbfbfb;
+    border:1px solid #e3e0da;
+    border-radius:12px;
+  }
+  .statLabel{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .statVal{font-size:22px;margin-top:4px;color:#111}
+  .keypoints li{font-size:17px;line-height:1.45;margin:8px 0}
+  .legend{display:flex;gap:14px;align-items:center;font-family:Arial,sans-serif;font-size:14px;margin-top:10px;flex-wrap:wrap}
+  .swatch{display:inline-block;width:18px;height:5px;border-radius:4px;margin-right:5px;vertical-align:middle}
+  .hit{background:var(--hit)} .miss{background:var(--miss)} .parallel{background:#888}
+  .manualGrid{display:grid;grid-template-columns:minmax(500px,1fr) 390px;gap:22px;align-items:start}
+  .sliderLine{display:grid;grid-template-columns:105px 1fr 70px;gap:10px;align-items:center;margin:12px 0;font-family:Arial,sans-serif}
+  .pill{
+    display:inline-block;
+    padding:4px 9px;
+    border-radius:999px;
+    background:#f1f3f4;
+    font-family:Arial,sans-serif;
+    font-size:13px;
+  }
+  .resultGood{color:#b03a2e;font-weight:bold}
+  .resultBad{color:#2c3e50;font-weight:bold}
+  .twoCol{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:950px){.grid,.manualGrid{grid-template-columns:1fr}.card{padding:16px}main{padding:16px}header{padding:18px}h1{font-size:28px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Buffon’s Needle</h1>
+  <div class="subtitle">An interactive geometric probability experiment</div>
+  <nav>
+    <button class="tabBtn active" data-page="page1">Page 1: Simulation</button>
+    <button class="tabBtn" data-page="page2">Page 2: Manual Experiment</button>
+  </nav>
+</header>
+
+<main>
+  <section id="page1" class="page active">
+    <div class="grid">
+      <div class="card">
+        <h2>Page 1 — Drop Many Needles</h2>
+        <p>Parallel lines are drawn on the floor, with distance <b>D</b> between neighboring lines. A needle of length <b>L</b> is dropped randomly.</p>
+        <p>The main question is:</p>
+        <div class="formula">What is the probability that the needle crosses a line?</div>
+        <p>When <span class="pill">L ≤ D</span>, the classic result is</p>
+        <div class="formula"><span class="math">P<span class="roman">(crossing)</span> = <span class="frac"><span class="top">2L</span><span class="bottom">πD</span></span></span></div>
+        <p>Use the buttons below to drop 1, 100, or 1000 needles. You can also start an infinite experiment and watch the estimate of <span class="math">π</span> improve.</p>
+
+        <div class="controls">
+          <div class="row">
+            <label>Needle length L:</label><input id="L1" type="number" value="60" min="5" max="140" step="1" />
+            <label>Line distance D:</label><input id="D1" type="number" value="90" min="20" max="160" step="1" />
+          </div>
+          <div class="row">
+            <button class="actionBtn primary" id="drop1">Drop 1</button>
+            <button class="actionBtn" id="drop100">Drop 100</button>
+            <button class="actionBtn" id="drop1000">Drop 1000</button>
+            <button class="actionBtn" id="startInfinite">Start infinite</button>
+            <button class="actionBtn" id="pauseInfinite">Pause</button>
+            <button class="actionBtn danger" id="resetSim">Reset</button>
+          </div>
+          <div class="small">Red needles cross a line. Dark needles do not cross a line. If the canvas gets crowded, press Reset.</div>
+        </div>
+        <canvas id="simCanvas" width="900" height="520"></canvas>
+        <div class="legend">
+          <span><span class="swatch hit"></span>Crossing</span>
+          <span><span class="swatch miss"></span>Not crossing</span>
+          <span><span class="swatch parallel"></span>Parallel lines</span>
+        </div>
+        <div class="stats">
+          <div class="statBox"><div class="statLabel">Total drops</div><div class="statVal" id="totalDrops">0</div></div>
+          <div class="statBox"><div class="statLabel">Crossings</div><div class="statVal" id="crossings">0</div></div>
+          <div class="statBox"><div class="statLabel">Experimental probability</div><div class="statVal" id="probVal">—</div></div>
+          <div class="statBox"><div class="statLabel">Estimated π</div><div class="statVal" id="piVal">—</div></div>
+        </div>
+      </div>
+
+      <aside class="card">
+        <h2>Teaching Notes</h2>
+        <ul class="keypoints">
+          <li>This is a <b>geometric probability</b> problem.</li>
+          <li>The needle is random in two ways: its <b>position</b> and its <b>angle</b>.</li>
+          <li>Let <span class="math">x</span> be the distance from the center of the needle to the nearest line.</li>
+          <li>Let <span class="math">θ</span> be the angle between the needle and the parallel lines.</li>
+          <li>The needle crosses a line exactly when<br><b><span class="math">x ≤ <span class="frac"><span class="top">L</span><span class="bottom">2</span></span> <span class="roman">sin</span> θ</span></b>.</li>
+          <li>For many drops, the ratio<br><b>crossings / total drops</b><br>should get close to<br><b><span class="math"><span class="frac"><span class="top">2L</span><span class="bottom">πD</span></span></span></b>.</li>
+        </ul>
+        <h3>How to estimate <span class="math">π</span></h3>
+        <p class="small">If you drop the needle <span class="math">N</span> times and it crosses a line <span class="math">C</span> times, then</p>
+        <div class="formula"><span class="math">π ≈ <span class="frac"><span class="top">2LN</span><span class="bottom">DC</span></span></span></div>
+        <p class="small">This estimate becomes better when the number of drops is large.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section id="page2" class="page">
+    <div class="manualGrid">
+      <div class="card">
+        <h2>Page 2 — Control One Needle</h2>
+        <p>Move the needle by dragging its center, or adjust the sliders. Change <b>L</b>, <b>D</b>, <b>θ</b>, and <b>x</b> to see exactly when the needle crosses a line.</p>
+        <p class="small"><b>D</b> means the vertical distance between two neighboring parallel lines. <b>x</b> means the distance from the needle's center to the nearest line.</p>
+        <canvas id="manualCanvas" width="900" height="560"></canvas>
+        <div class="legend">
+          <span><span class="swatch hit"></span>Crossing</span>
+          <span><span class="swatch miss"></span>Not crossing</span>
+          <span><span class="swatch parallel"></span>Parallel lines</span>
+        </div>
+      </div>
+
+      <aside class="card">
+        <h2>Interactive Controls</h2>
+        <div class="sliderLine"><label for="L2">L</label><input id="L2" type="range" min="20" max="160" value="90" /><span id="L2v">90</span></div>
+        <div class="sliderLine"><label for="D2">D = line spacing</label><input id="D2" type="range" min="40" max="180" value="120" /><span id="D2v">120</span></div>
+        <div class="sliderLine"><label for="theta2">θ degrees</label><input id="theta2" type="range" min="0" max="180" value="35" /><span id="theta2v">35°</span></div>
+        <div class="sliderLine"><label for="x2">x = center distance</label><input id="x2" type="range" min="0" max="90" value="28" /><span id="x2v">28</span></div>
+        <div class="twoCol">
+          <button class="actionBtn" id="randomNeedle">Random needle</button>
+          <button class="actionBtn danger" id="centerNeedle">Center it</button>
+        </div>
+        <h3>Crossing Test</h3>
+        <p class="small">The vertical half-projection of the needle is</p>
+        <div class="formula"><span class="math"><span class="frac"><span class="top">L</span><span class="bottom">2</span></span>|<span class="roman">sin</span> θ|</span></div>
+        <p class="small">The needle crosses a line if</p>
+        <div class="formula"><span class="math">x ≤ <span class="frac"><span class="top">L</span><span class="bottom">2</span></span>|<span class="roman">sin</span> θ|</span></div>
+        <div class="stats">
+          <div class="statBox"><div class="statLabel">x</div><div class="statVal" id="manualX">—</div></div>
+          <div class="statBox"><div class="statLabel">L/2 · |<span class="roman">sin</span> θ|</div><div class="statVal" id="manualProj">—</div></div>
+        </div>
+        <p id="manualResult" style="font-size:22px;margin-top:16px"></p>
+        <p class="small">Tip for class: Ask students to predict crossing or not crossing before moving the sliders.</p>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// Page tabs
+for (const btn of document.querySelectorAll('.tabBtn')) {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tabBtn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $(btn.dataset.page).classList.add('active');
+    drawSim();
+    drawManual();
+  });
+}
+
+// ---------- Page 1 Simulation ----------
+const simCanvas = $('simCanvas');
+const simCtx = simCanvas.getContext('2d');
+let needles = [];
+let total = 0;
+let hits = 0;
+let infiniteTimer = null;
+
+function linePositions(height, D) {
+  const lines = [];
+  const offset = 40;
+  for (let y = offset; y < height; y += D) lines.push(y);
+  return lines;
+}
+
+function nearestDistanceToLine(y, D, height) {
+  const lines = linePositions(height, D);
+  let min = Infinity;
+  for (const ly of lines) min = Math.min(min, Math.abs(y - ly));
+  return min;
+}
+
+function drawLines(ctx, canvas, D) {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = '#fffaf1';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  const lines = linePositions(canvas.height, D);
+  ctx.strokeStyle = '#777';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([]);
+  for (const y of lines) {
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(canvas.width,y);
+    ctx.stroke();
+  }
+}
+
+
+function drawManualLines(ctx, canvas, D, baseY) {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = '#fffaf1';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  const lines = [];
+  for (let y = baseY; y >= 0; y -= D) lines.push(y);
+  for (let y = baseY + D; y <= canvas.height; y += D) lines.push(y);
+
+  ctx.strokeStyle = '#777';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([]);
+  for (const y of lines) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+  }
+}
+
+function drawNeedle(ctx, n, width=3) {
+  const dx = Math.cos(n.theta) * n.L / 2;
+  const dy = Math.sin(n.theta) * n.L / 2;
+  ctx.strokeStyle = n.hit ? '#c0392b' : '#34495e';
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(n.cx - dx, n.cy - dy);
+  ctx.lineTo(n.cx + dx, n.cy + dy);
+  ctx.stroke();
+  ctx.fillStyle = n.hit ? '#c0392b' : '#34495e';
+  ctx.beginPath();
+  ctx.arc(n.cx, n.cy, 3.2, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function makeRandomNeedle() {
+  const L = Math.max(1, Number($('L1').value));
+  const D = Math.max(5, Number($('D1').value));
+  const theta = Math.random() * Math.PI;
+  const cx = 20 + Math.random() * (simCanvas.width - 40);
+  const cy = 20 + Math.random() * (simCanvas.height - 40);
+  const x = nearestDistanceToLine(cy, D, simCanvas.height);
+  const hit = x <= Math.abs(Math.sin(theta)) * L / 2;
+  return {cx, cy, theta, L, D, hit};
+}
+
+function addNeedles(n) {
+  for (let i=0;i<n;i++) {
+    const nd = makeRandomNeedle();
+    needles.push(nd);
+    total++;
+    if (nd.hit) hits++;
+  }
+  if (needles.length > 2400) needles = needles.slice(-2400);
+  drawSim();
+  updateStats();
+}
+
+function drawSim() {
+  const D = Math.max(5, Number($('D1').value));
+  drawLines(simCtx, simCanvas, D);
+  for (const n of needles) drawNeedle(simCtx, n, needles.length > 1000 ? 1.4 : 2.4);
+}
+
+function updateStats() {
+  $('totalDrops').textContent = total;
+  $('crossings').textContent = hits;
+  if (total === 0) {
+    $('probVal').textContent = '—';
+    $('piVal').textContent = '—';
+    return;
+  }
+  const p = hits / total;
+  $('probVal').textContent = p.toFixed(4);
+  const L = Math.max(1, Number($('L1').value));
+  const D = Math.max(5, Number($('D1').value));
+  $('piVal').textContent = hits === 0 ? '—' : (2 * L * total / (D * hits)).toFixed(4);
+}
+
+$('drop1').onclick = () => addNeedles(1);
+$('drop100').onclick = () => addNeedles(100);
+$('drop1000').onclick = () => addNeedles(1000);
+$('resetSim').onclick = () => { needles=[]; total=0; hits=0; clearInterval(infiniteTimer); infiniteTimer=null; drawSim(); updateStats(); };
+$('startInfinite').onclick = () => {
+  if (infiniteTimer) return;
+  infiniteTimer = setInterval(() => addNeedles(25), 70);
+};
+$('pauseInfinite').onclick = () => { clearInterval(infiniteTimer); infiniteTimer=null; };
+$('L1').addEventListener('change', () => { needles=[]; total=0; hits=0; drawSim(); updateStats(); });
+$('D1').addEventListener('change', () => { needles=[]; total=0; hits=0; drawSim(); updateStats(); });
+
+// ---------- Page 2 Manual ----------
+const manualCanvas = $('manualCanvas');
+const mctx = manualCanvas.getContext('2d');
+let centerX = manualCanvas.width * 0.54;
+let baseLineY = 280;
+let dragging = false;
+
+function clamp(v,min,max){return Math.max(min, Math.min(max,v));}
+function rad(deg){return deg * Math.PI / 180;}
+
+function getManual() {
+  return {
+    L: Number($('L2').value),
+    D: Number($('D2').value),
+    thetaDeg: Number($('theta2').value),
+    x: Number($('x2').value)
+  };
+}
+
+function syncManualLabels() {
+  const m = getManual();
+  $('L2v').textContent = m.L;
+  $('D2v').textContent = m.D;
+  $('theta2v').textContent = m.thetaDeg + '°';
+  $('x2').max = Math.floor(m.D/2);
+  const xVal = Math.min(Number($('x2').value), Number($('x2').max));
+  $('x2').value = xVal;
+  $('x2v').textContent = xVal;
+}
+
+function drawManual() {
+  syncManualLabels();
+  const m = getManual();
+  const theta = rad(m.thetaDeg);
+  baseLineY = manualCanvas.height/2 + m.D/2;
+  const cy = baseLineY - Number($('x2').value);
+  const cx = centerX;
+  drawManualLines(mctx, manualCanvas, m.D, baseLineY);
+  // Highlight nearest baseline
+  mctx.strokeStyle = '#2f6f9f';
+  mctx.lineWidth = 3;
+  mctx.beginPath();
+  mctx.moveTo(0, baseLineY);
+  mctx.lineTo(manualCanvas.width, baseLineY);
+  mctx.stroke();
+
+  const proj = Math.abs(Math.sin(theta)) * m.L / 2;
+  const x = Number($('x2').value);
+  const hit = x <= proj + 1e-9;
+  drawNeedle(mctx, {cx, cy, theta, L:m.L, hit}, 5);
+
+  // dashed perpendicular distance x
+  mctx.strokeStyle = '#2f6f9f';
+  mctx.lineWidth = 2;
+  mctx.setLineDash([8,6]);
+  mctx.beginPath();
+  mctx.moveTo(cx, cy);
+  mctx.lineTo(cx, baseLineY);
+  mctx.stroke();
+  mctx.setLineDash([]);
+  mctx.fillStyle = '#2f6f9f';
+  mctx.font = '22px Georgia';
+  mctx.fillText('x', cx+12, (cy+baseLineY)/2);
+
+  // angle arc
+  const arcR = 62;
+  mctx.strokeStyle = '#8e6b2f';
+  mctx.lineWidth = 2;
+  mctx.beginPath();
+  mctx.arc(cx, cy, arcR, 0, theta, theta < 0);
+  mctx.stroke();
+  mctx.fillStyle = '#8e6b2f';
+  mctx.fillText('θ', cx + arcR + 8, cy + 18);
+
+  // L label near needle
+  const dx = Math.cos(theta) * m.L/2;
+  const dy = Math.sin(theta) * m.L/2;
+  mctx.fillStyle = '#111';
+  mctx.font = '22px Georgia';
+  mctx.fillText('L', cx + dx/2 + 10, cy + dy/2 - 8);
+
+  // D label: distance between two neighboring parallel lines
+  const dX = 58;
+  const yTop = baseLineY - m.D;
+  const yBottom = baseLineY;
+  const yMid = (yTop + yBottom) / 2;
+  mctx.strokeStyle = '#555';
+  mctx.lineWidth = 1.8;
+  mctx.setLineDash([]);
+  mctx.beginPath();
+  mctx.moveTo(dX, yTop);
+  mctx.lineTo(dX, yBottom);
+  mctx.stroke();
+  // small bracket ticks
+  mctx.beginPath();
+  mctx.moveTo(dX - 12, yTop);
+  mctx.lineTo(dX + 12, yTop);
+  mctx.moveTo(dX - 12, yBottom);
+  mctx.lineTo(dX + 12, yBottom);
+  mctx.stroke();
+  // arrowheads
+  mctx.beginPath();
+  mctx.moveTo(dX, yTop);
+  mctx.lineTo(dX - 6, yTop + 10);
+  mctx.lineTo(dX + 6, yTop + 10);
+  mctx.closePath();
+  mctx.fillStyle = '#555';
+  mctx.fill();
+  mctx.beginPath();
+  mctx.moveTo(dX, yBottom);
+  mctx.lineTo(dX - 6, yBottom - 10);
+  mctx.lineTo(dX + 6, yBottom - 10);
+  mctx.closePath();
+  mctx.fill();
+  mctx.fillStyle = '#111';
+  mctx.font = '20px Georgia';
+  mctx.fillText('D = distance between lines', dX + 22, yMid + 7);
+
+  $('manualX').textContent = x.toFixed(1);
+  $('manualProj').textContent = proj.toFixed(1);
+  const result = $('manualResult');
+  if (hit) {
+    result.innerHTML = '<span class="resultGood">Crosses a line</span>';
+  } else {
+    result.innerHTML = '<span class="resultBad">Does not cross a line</span>';
+  }
+}
+
+['L2','D2','theta2','x2'].forEach(id => $(id).addEventListener('input', drawManual));
+$('randomNeedle').onclick = () => {
+  $('theta2').value = Math.floor(Math.random()*181);
+  const D = Number($('D2').value);
+  $('x2').value = Math.floor(Math.random()*(D/2+1));
+  centerX = 120 + Math.random()*(manualCanvas.width-240);
+  drawManual();
+};
+$('centerNeedle').onclick = () => {
+  centerX = manualCanvas.width*0.54;
+  $('x2').value = 28;
+  drawManual();
+};
+
+function canvasPoint(evt, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const x = (evt.clientX - rect.left) * canvas.width / rect.width;
+  const y = (evt.clientY - rect.top) * canvas.height / rect.height;
+  return {x,y};
+}
+manualCanvas.addEventListener('mousedown', evt => {
+  const p = canvasPoint(evt, manualCanvas);
+  const m = getManual();
+  const cy = baseLineY - Number($('x2').value);
+  if (Math.hypot(p.x-centerX, p.y-cy) < 42) dragging = true;
+});
+window.addEventListener('mousemove', evt => {
+  if (!dragging) return;
+  const p = canvasPoint(evt, manualCanvas);
+  const m = getManual();
+  centerX = clamp(p.x, 40, manualCanvas.width-40);
+  const nearestX = Math.min(...linePositions(manualCanvas.height, m.D).map(ly => Math.abs(p.y-ly)));
+  $('x2').value = clamp(Math.round(nearestX), 0, Math.floor(m.D/2));
+  drawManual();
+});
+window.addEventListener('mouseup', () => dragging=false);
+
+// Touch support
+manualCanvas.addEventListener('touchstart', evt => {
+  evt.preventDefault();
+  const t = evt.touches[0];
+  const p = canvasPoint(t, manualCanvas);
+  const cy = baseLineY - Number($('x2').value);
+  if (Math.hypot(p.x-centerX, p.y-cy) < 55) dragging = true;
+}, {passive:false});
+manualCanvas.addEventListener('touchmove', evt => {
+  if (!dragging) return;
+  evt.preventDefault();
+  const t = evt.touches[0];
+  const p = canvasPoint(t, manualCanvas);
+  const m = getManual();
+  centerX = clamp(p.x, 40, manualCanvas.width-40);
+  const nearestX = Math.min(...linePositions(manualCanvas.height, m.D).map(ly => Math.abs(p.y-ly)));
+  $('x2').value = clamp(Math.round(nearestX), 0, Math.floor(m.D/2));
+  drawManual();
+}, {passive:false});
+window.addEventListener('touchend', () => dragging=false);
+
+// Initial drawings
+drawSim();
+updateStats();
+drawManual();
+</script>
+</body>
+</html>
