@@ -1,0 +1,2021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Venn Diagram Interactive Lab</title>
+  <style>
+    :root{
+      --cyan:#61e7ff;
+      --blue:#5b8cff;
+      --green:#57f29a;
+      --yellow:#ffd86b;
+      --orange:#ffad5c;
+      --red:#ff6f91;
+      --purple:#b387ff;
+      --white:#eef6ff;
+      --muted:#aabce8;
+      --bg:#061126;
+    }
+
+    *{box-sizing:border-box}
+
+    html,body{
+      margin:0;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      font-family:Arial, Helvetica, sans-serif;
+      color:var(--white);
+      background:radial-gradient(circle at 20% 10%, #243e8e, #0b1d47 35%, #061126 70%, #02040c);
+    }
+
+    .stars,.grid,.scan{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+
+    .stars{
+      background-image:
+        radial-gradient(circle,rgba(255,255,255,.35) 1px,transparent 1px),
+        radial-gradient(circle,rgba(97,231,255,.24) 1px,transparent 1px);
+      background-size:70px 70px,115px 115px;
+      opacity:.42;
+      animation:drift 18s linear infinite;
+    }
+
+    .grid{
+      background-image:
+        linear-gradient(rgba(97,231,255,.08) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(97,231,255,.08) 1px,transparent 1px);
+      background-size:58px 58px;
+      transform:perspective(760px) rotateX(62deg) translateY(36vh) scale(1.45);
+      transform-origin:bottom center;
+      opacity:.35;
+      animation:gridMove 5.5s linear infinite;
+    }
+
+    .scan{
+      background:repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,.03),
+        rgba(255,255,255,.03) 1px,
+        transparent 1px,
+        transparent 6px
+      );
+      opacity:.15;
+    }
+
+    @keyframes drift{
+      from{transform:translateY(0)}
+      to{transform:translateY(120px)}
+    }
+
+    @keyframes gridMove{
+      from{background-position:0 0}
+      to{background-position:0 58px}
+    }
+
+    .app{
+      position:relative;
+      width:100vw;
+      height:100vh;
+      padding:18px 20px 24px;
+    }
+
+    .topbar{
+      position:relative;
+      z-index:30;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .logo{
+      width:46px;
+      height:46px;
+      border-radius:50%;
+      background:radial-gradient(circle at 35% 35%,#fff,var(--cyan) 35%,var(--blue) 70%,#102555);
+      box-shadow:0 0 28px rgba(97,231,255,.48);
+    }
+
+    .brand-title{
+      font-size:22px;
+      font-weight:900;
+    }
+
+    .brand-sub{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:3px;
+    }
+
+    .top-controls{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+
+    .pill{
+      padding:10px 14px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      color:var(--muted);
+      font-size:13px;
+      font-weight:800;
+      max-width:480px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    button{
+      border:0;
+      border-radius:999px;
+      padding:11px 18px;
+      cursor:pointer;
+      font-weight:900;
+      color:#061126;
+      background:linear-gradient(135deg,var(--cyan),var(--blue));
+      box-shadow:0 10px 24px rgba(91,140,255,.28);
+      transition:.15s;
+    }
+
+    button:hover{
+      transform:translateY(-1px);
+      filter:brightness(1.08);
+    }
+
+    button.secondary{
+      color:var(--white);
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.15);
+      box-shadow:none;
+    }
+
+    .stage{
+      position:relative;
+      z-index:10;
+      height:calc(100vh - 118px);
+      border-radius:30px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.09);
+      background:linear-gradient(135deg,rgba(12,25,58,.86),rgba(5,11,28,.88));
+      box-shadow:0 30px 80px rgba(0,0,0,.38), inset 0 0 60px rgba(97,231,255,.04);
+    }
+
+    .scene{
+      position:absolute;
+      inset:0;
+      padding:40px 42px 90px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:28px;
+      align-items:center;
+      animation:sceneIn .35s ease both;
+    }
+
+    @keyframes sceneIn{
+      from{opacity:0;transform:translateY(14px) scale(.985)}
+      to{opacity:1;transform:translateY(0) scale(1)}
+    }
+
+    .panel{
+      background:linear-gradient(135deg,rgba(20,38,88,.78),rgba(9,17,42,.72));
+      border:1px solid rgba(97,231,255,.16);
+      border-radius:28px;
+      padding:30px;
+      box-shadow:inset 0 0 35px rgba(97,231,255,.04);
+    }
+
+    .kicker{
+      display:inline-block;
+      padding:8px 14px;
+      border-radius:999px;
+      background:rgba(97,231,255,.10);
+      border:1px solid rgba(97,231,255,.18);
+      color:var(--cyan);
+      text-transform:uppercase;
+      letter-spacing:.1em;
+      font-size:12px;
+      font-weight:900;
+      margin-bottom:16px;
+    }
+
+    .title{
+      font-size:clamp(34px,4.3vw,64px);
+      line-height:.98;
+      font-weight:900;
+      margin:0 0 14px;
+      letter-spacing:-.04em;
+      text-shadow:0 0 30px rgba(97,231,255,.18);
+    }
+
+    .subtitle{
+      font-size:clamp(18px,2vw,27px);
+      line-height:1.35;
+      color:var(--muted);
+      margin:0 0 18px;
+    }
+
+    .body-text{
+      font-size:clamp(20px,2.05vw,30px);
+      line-height:1.42;
+      margin:0 0 16px;
+      color:#edf5ff;
+    }
+
+    .small{
+      color:var(--muted);
+      font-size:16px;
+      line-height:1.5;
+    }
+
+    .cyan-text{color:var(--cyan);font-weight:900}
+    .green-text{color:var(--green);font-weight:900}
+    .yellow-text{color:var(--yellow);font-weight:900}
+    .red-text{color:var(--red);font-weight:900}
+    .purple-text{color:var(--purple);font-weight:900}
+
+    .bullets{
+      display:grid;
+      gap:12px;
+      margin-top:18px;
+    }
+
+    .bullet{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:18px;
+      padding:14px 16px;
+      font-size:20px;
+      line-height:1.4;
+    }
+
+    .icon{
+      width:34px;
+      height:34px;
+      border-radius:12px;
+      background:rgba(97,231,255,.12);
+      color:var(--cyan);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      flex:0 0 auto;
+    }
+
+    .visual{
+      min-height:460px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+    }
+
+    .big-orb{
+      width:min(32vw,360px);
+      height:min(32vw,360px);
+      border-radius:50%;
+      background:conic-gradient(from 0deg,rgba(97,231,255,.15),rgba(179,135,255,.55),rgba(87,242,154,.18),rgba(255,216,107,.18),rgba(97,231,255,.15));
+      box-shadow:0 0 90px rgba(97,231,255,.18), inset 0 0 45px rgba(0,0,0,.36);
+      animation:spin 10s linear infinite;
+      position:relative;
+    }
+
+    .big-orb:before{
+      content:"VENN";
+      position:absolute;
+      inset:22%;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      background:rgba(3,8,24,.84);
+      color:var(--cyan);
+      font-size:clamp(28px,3.2vw,50px);
+      font-weight:900;
+      letter-spacing:.12em;
+    }
+
+    @keyframes spin{
+      to{transform:rotate(360deg)}
+    }
+
+    .equation-card{
+      width:100%;
+      max-width:720px;
+      padding:28px;
+      border-radius:24px;
+      background:rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.12);
+      text-align:left;
+      font-size:clamp(24px,2.8vw,40px);
+      font-weight:900;
+      line-height:1.34;
+      white-space:pre-line;
+      box-shadow:0 0 34px rgba(97,231,255,.06);
+    }
+
+    .map-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(170px,1fr));
+      gap:16px;
+      margin-top:20px;
+    }
+
+    .map-card{
+      min-height:112px;
+      border-radius:20px;
+      padding:18px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(97,231,255,.12);
+      position:relative;
+      overflow:hidden;
+    }
+
+    .map-card:after{
+      content:"";
+      position:absolute;
+      left:-60%;
+      top:0;
+      width:45%;
+      height:100%;
+      background:linear-gradient(90deg,transparent,rgba(97,231,255,.15),transparent);
+      animation:shine 4.5s ease-in-out infinite;
+    }
+
+    @keyframes shine{
+      0%{left:-60%}
+      55%,100%{left:130%}
+    }
+
+    .map-card h4{
+      margin:0 0 8px;
+      color:var(--cyan);
+      font-size:22px;
+    }
+
+    .map-card p{
+      margin:0;
+      color:var(--muted);
+      font-size:15px;
+      line-height:1.4;
+    }
+
+    .lab-box{
+      width:100%;
+      max-width:900px;
+      padding:24px;
+      border-radius:28px;
+      background:rgba(255,255,255,.07);
+      border:1px solid rgba(97,231,255,.16);
+      box-shadow:inset 0 0 30px rgba(97,231,255,.04);
+    }
+
+    .lab-title{
+      font-size:28px;
+      font-weight:900;
+      margin:0 0 6px;
+    }
+
+    .lab-sub{
+      color:var(--muted);
+      font-size:15px;
+      margin-bottom:14px;
+    }
+
+    .venn-wrap{
+      display:grid;
+      grid-template-columns:1.35fr .65fr;
+      gap:16px;
+      align-items:stretch;
+    }
+
+    .venn-card{
+      border-radius:22px;
+      background:rgba(4,11,31,.65);
+      border:1px solid rgba(255,255,255,.10);
+      padding:10px;
+      min-height:360px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .info-card{
+      border-radius:22px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      padding:18px;
+      min-height:360px;
+    }
+
+    .info-title{
+      font-size:24px;
+      font-weight:900;
+      color:var(--cyan);
+      margin:0 0 12px;
+    }
+
+    .info-body{
+      font-size:20px;
+      line-height:1.42;
+      font-weight:800;
+      color:#f0f6ff;
+      white-space:pre-line;
+    }
+
+    .info-example{
+      margin-top:14px;
+      padding:12px;
+      border-radius:16px;
+      background:rgba(97,231,255,.08);
+      color:var(--muted);
+      font-size:15px;
+      line-height:1.35;
+    }
+
+    .legend{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:800;
+    }
+
+    .legend span{
+      padding:7px 10px;
+      border-radius:999px;
+      background:rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.10);
+    }
+
+    svg{
+      width:100%;
+      height:auto;
+      max-height:430px;
+    }
+
+    .region{
+      cursor:pointer;
+      transition:.15s;
+      stroke:none;
+    }
+
+    .region:hover{
+      filter:brightness(1.22);
+    }
+
+    .outline{
+      fill:none;
+      stroke:rgba(240,248,255,.88);
+      stroke-width:3;
+      pointer-events:none;
+    }
+
+    .label{
+      fill:#f4f8ff;
+      font-weight:900;
+      font-size:23px;
+      text-anchor:middle;
+      pointer-events:none;
+    }
+
+    .tiny-label{
+      fill:#dce7ff;
+      font-weight:800;
+      font-size:15px;
+      text-anchor:middle;
+      pointer-events:none;
+    }
+
+    .quiz-card{
+      width:100%;
+      max-width:850px;
+      padding:28px;
+      border-radius:28px;
+      background:linear-gradient(135deg,rgba(97,231,255,.09),rgba(179,135,255,.08));
+      border:1px solid rgba(97,231,255,.18);
+    }
+
+    .quiz-question{
+      font-size:clamp(24px,2.6vw,37px);
+      font-weight:900;
+      line-height:1.25;
+      margin:0 0 20px;
+    }
+
+    .choices{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+
+    .choice{
+      border-radius:18px;
+      padding:18px 20px;
+      font-size:21px;
+      font-weight:900;
+      color:var(--white);
+      text-align:left;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow:none;
+    }
+
+    .choice.correct{
+      background:rgba(87,242,154,.18);
+      border-color:rgba(87,242,154,.55);
+      color:var(--green);
+    }
+
+    .choice.wrong{
+      background:rgba(255,111,145,.18);
+      border-color:rgba(255,111,145,.55);
+      color:var(--red);
+    }
+
+    .feedback{
+      margin-top:16px;
+      border-radius:18px;
+      padding:16px 18px;
+      font-size:20px;
+      line-height:1.35;
+      font-weight:800;
+      display:none;
+    }
+
+    .feedback.show{display:block}
+
+    .feedback.good{
+      background:rgba(87,242,154,.14);
+      border:1px solid rgba(87,242,154,.4);
+      color:#dfffee;
+    }
+
+    .feedback.bad{
+      background:rgba(255,111,145,.14);
+      border:1px solid rgba(255,111,145,.4);
+      color:#ffe4ea;
+    }
+
+    .answer-pop{
+      position:absolute;
+      right:42px;
+      bottom:96px;
+      z-index:30;
+      padding:18px 24px;
+      border-radius:24px;
+      font-size:42px;
+      font-weight:900;
+      background:rgba(0,0,0,.52);
+      border:1px solid rgba(255,255,255,.16);
+      box-shadow:0 0 45px rgba(97,231,255,.12);
+      display:none;
+    }
+
+    .answer-pop.show{display:block}
+    .answer-pop.good{color:var(--green)}
+    .answer-pop.bad{color:var(--red)}
+
+    .counter-grid{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:14px;
+      margin-top:14px;
+    }
+
+    .stat-box{
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:18px;
+      padding:14px;
+    }
+
+    .stat-box h4{
+      margin:0 0 8px;
+      color:var(--cyan);
+      font-size:16px;
+    }
+
+    .stat-value{
+      font-size:26px;
+      font-weight:900;
+      color:var(--white);
+    }
+
+    .slider-wrap{
+      margin-top:14px;
+    }
+
+    .slider-wrap label{
+      display:flex;
+      justify-content:space-between;
+      margin-bottom:8px;
+      color:var(--muted);
+      font-size:14px;
+      font-weight:800;
+    }
+
+    .slider-wrap input[type=range]{
+      width:100%;
+      accent-color:var(--cyan);
+    }
+
+    .formula-panel{
+      margin-top:16px;
+      padding:16px;
+      border-radius:18px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      font-size:22px;
+      font-weight:900;
+      text-align:center;
+      line-height:1.35;
+    }
+
+    .teacher-panel{
+      position:absolute;
+      right:22px;
+      top:70px;
+      width:400px;
+      max-width:calc(100vw - 44px);
+      z-index:70;
+      background:rgba(8,15,37,.96);
+      border:1px solid rgba(97,231,255,.18);
+      border-radius:22px;
+      padding:18px;
+      box-shadow:0 20px 55px rgba(0,0,0,.38);
+      display:none;
+    }
+
+    .teacher-panel.show{
+      display:block;
+    }
+
+    .teacher-panel h3{
+      margin:0 0 12px;
+      color:var(--cyan);
+      font-size:20px;
+    }
+
+    .teacher-panel label{
+      display:block;
+      margin:12px 0 6px;
+      font-size:13px;
+      color:var(--muted);
+      font-weight:800;
+    }
+
+    .teacher-panel select{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.05);
+      color:var(--white);
+      outline:none;
+      font-size:14px;
+    }
+
+    .teacher-panel .row{
+      display:flex;
+      gap:10px;
+      margin-top:12px;
+      flex-wrap:wrap;
+    }
+
+    .teacher-panel .row button{
+      flex:1;
+      min-width:105px;
+    }
+
+    .teacher-note{
+      margin-top:12px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+    }
+
+    .footer{
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      z-index:18;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:10px;
+      padding:16px 20px 18px;
+      background:linear-gradient(180deg,rgba(3,7,18,0),rgba(3,7,18,.55));
+    }
+
+    .scene-count{
+      min-width:96px;
+      text-align:center;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:800;
+    }
+
+    @media(max-width:980px){
+      .scene{
+        grid-template-columns:1fr;
+        overflow:auto;
+        padding:28px 20px 88px;
+      }
+
+      .visual{
+        min-height:260px;
+      }
+
+      .venn-wrap{
+        grid-template-columns:1fr;
+      }
+
+      .choices{
+        grid-template-columns:1fr;
+      }
+
+      .map-grid{
+        grid-template-columns:1fr;
+      }
+
+      .counter-grid{
+        grid-template-columns:1fr;
+      }
+
+      .topbar{
+        flex-direction:column;
+        align-items:stretch;
+      }
+
+      .top-controls{
+        justify-content:flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="stars"></div>
+  <div class="grid"></div>
+  <div class="scan"></div>
+
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <div class="brand-title">Venn Diagram Interactive Lab</div>
+          <div class="brand-sub">Sets · Regions · Union · Intersection · Complement · Counting</div>
+        </div>
+      </div>
+
+      <div class="top-controls">
+        <div class="pill" id="sceneNamePill">Scene</div>
+        <button class="secondary" onclick="toggleTeacherPanel()">Teacher Panel</button>
+        <button class="secondary" onclick="toggleFullscreen()">Fullscreen</button>
+      </div>
+    </div>
+
+    <div class="teacher-panel" id="teacherPanel">
+      <h3>Teacher Panel</h3>
+      <label>Jump to Page</label>
+      <select id="sceneSelect"></select>
+
+      <div class="row">
+        <button onclick="jumpScene()">Go</button>
+        <button class="secondary" onclick="prevScene()">Back</button>
+        <button class="secondary" onclick="nextScene()">Next</button>
+      </div>
+
+      <div class="row">
+        <button class="secondary" onclick="resetCurrentInteraction()">Reset</button>
+      </div>
+
+      <div class="teacher-note">
+        Keyboard: → next, ← back, F fullscreen, T teacher panel.
+        Click any Venn region to show its meaning.
+      </div>
+    </div>
+
+    <div class="stage">
+      <div id="sceneContainer"></div>
+      <div class="answer-pop" id="answerPop"></div>
+
+      <div class="footer">
+        <button class="secondary" onclick="prevScene()">← Back</button>
+        <div class="scene-count" id="sceneCount">1 / 1</div>
+        <button onclick="nextScene()">Next →</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+'use strict';
+
+const scenes = [
+  {
+    name:"Cover",
+    kind:"content",
+    kicker:"Interactive Lesson",
+    title:"Venn Diagrams",
+    subtitle:"A visual way to organize information.",
+    body:"Today we will click regions, read meanings, and solve counting problems using Venn diagrams.",
+    bullets:[
+      "A set is a group of objects.",
+      "A Venn diagram shows how sets overlap.",
+      "Each region has a different meaning.",
+      "Counting problems become easier when we fill regions carefully."
+    ],
+    visual:"cover"
+  },
+  {
+    name:"Lesson Map",
+    kind:"content",
+    kicker:"Roadmap",
+    title:"What We Will Learn",
+    subtitle:"From simple regions to three-set counting.",
+    body:"The most important skill is knowing what each region means.",
+    visual:"map"
+  },
+  {
+    name:"What Is a Set?",
+    kind:"content",
+    kicker:"Set Basics",
+    title:"A Set Is a Collection",
+    subtitle:"A set is a group of things that belong together.",
+    body:"Examples: students who like basketball, numbers greater than 10, or pets in a classroom.",
+    bullets:[
+      "Set A could mean students who like apples.",
+      "Set B could mean students who like bananas.",
+      "A person can be in A, in B, in both, or in neither."
+    ],
+    visual:"equation",
+    equation:"A = students who like apples\nB = students who like bananas\nU = everyone in the class"
+  },
+  {
+    name:"Two-Set Click Lab",
+    kind:"twoLab",
+    kicker:"Click Lab",
+    title:"Two-Set Venn Diagram",
+    subtitle:"Click each region to see what it means.",
+    body:"Use this page to explain A only, B only, both, and neither."
+  },
+  {
+    name:"Region: A Only",
+    kind:"content",
+    kicker:"Region",
+    title:"A Only",
+    subtitle:"Inside A, but outside B.",
+    body:"This means the object belongs to set A, but does not belong to set B.",
+    bullets:[
+      "Likes apples but not bananas.",
+      "Has a dog but not a cat.",
+      "Is in math club but not chess club."
+    ],
+    visual:"twoStaticAOnly"
+  },
+  {
+    name:"Region: B Only",
+    kind:"content",
+    kicker:"Region",
+    title:"B Only",
+    subtitle:"Inside B, but outside A.",
+    body:"This means the object belongs to set B, but does not belong to set A.",
+    bullets:[
+      "Likes bananas but not apples.",
+      "Has a cat but not a dog.",
+      "Is in chess club but not math club."
+    ],
+    visual:"twoStaticBOnly"
+  },
+  {
+    name:"Region: Both",
+    kind:"content",
+    kicker:"Region",
+    title:"A ∩ B",
+    subtitle:"The overlap means both.",
+    body:"A ∩ B means the objects that are in both A and B.",
+    bullets:[
+      "Likes both apples and bananas.",
+      "Has both a dog and a cat.",
+      "Is in both clubs."
+    ],
+    visual:"twoStaticBoth"
+  },
+  {
+    name:"Region: Neither",
+    kind:"content",
+    kicker:"Region",
+    title:"Neither A nor B",
+    subtitle:"Outside both circles, but still inside the universe.",
+    body:"This region means the object is not in A and not in B.",
+    bullets:[
+      "Does not like apples or bananas.",
+      "Has neither a dog nor a cat.",
+      "Is in neither club."
+    ],
+    visual:"twoStaticNeither"
+  },
+  {
+    name:"Union",
+    kind:"content",
+    kicker:"Operation",
+    title:"Union: A ∪ B",
+    subtitle:"A or B or both.",
+    body:"A ∪ B means everything inside A or inside B. The overlap is included.",
+    bullets:[
+      "The word OR usually means union.",
+      "A or B includes A only, B only, and both.",
+      "Do not count the overlap twice."
+    ],
+    visual:"twoStaticUnion"
+  },
+  {
+    name:"Intersection",
+    kind:"content",
+    kicker:"Operation",
+    title:"Intersection: A ∩ B",
+    subtitle:"A and B at the same time.",
+    body:"A ∩ B means only the overlap.",
+    bullets:[
+      "The word AND usually means intersection.",
+      "It must satisfy both conditions.",
+      "This is usually the middle overlap."
+    ],
+    visual:"twoStaticBoth"
+  },
+  {
+    name:"Complement",
+    kind:"content",
+    kicker:"Operation",
+    title:"Complement",
+    subtitle:"Not in the set.",
+    body:"A complement means everything in the universe that is not in A.",
+    bullets:[
+      "Aᶜ means not A.",
+      "It can include B only and neither.",
+      "Always check what the universe U means."
+    ],
+    visual:"twoStaticAComp"
+  },
+  {
+    name:"Mini Check 1",
+    kind:"quiz",
+    kicker:"Mini Check",
+    title:"Meaning of Overlap",
+    question:"In a two-set Venn diagram, what does A ∩ B mean?",
+    choices:[
+      "Only in A",
+      "Only in B",
+      "In both A and B",
+      "In neither A nor B"
+    ],
+    correct:2,
+    explanation:"A ∩ B means the intersection, or the overlap. It means in both A and B."
+  },
+  {
+    name:"Counting Setup",
+    kind:"content",
+    kicker:"Counting",
+    title:"Start From the Overlap",
+    subtitle:"When solving Venn counting problems, fill the overlap first.",
+    body:"Many mistakes happen because students count the overlap twice. Start with the middle.",
+    bullets:[
+      "Step 1: Put the overlap first.",
+      "Step 2: Subtract overlap from each circle total.",
+      "Step 3: Add regions to find union.",
+      "Step 4: Use the total to find neither."
+    ],
+    visual:"equation",
+    equation:"A only = A − both\nB only = B − both\nA ∪ B = A only + both + B only"
+  },
+  {
+    name:"Two-Set Counting Lab",
+    kind:"countTwo",
+    kicker:"Interactive Counting",
+    title:"Two-Set Counting",
+    subtitle:"Move the sliders and watch the regions update.",
+    body:"This page shows why we subtract the overlap."
+  },
+  {
+    name:"Two-Set Formula",
+    kind:"content",
+    kicker:"Formula",
+    title:"Inclusion-Exclusion",
+    subtitle:"For two sets, subtract the overlap once.",
+    body:"If we add |A| + |B|, the overlap is counted twice. So we subtract |A ∩ B| once.",
+    bullets:[
+      "|A ∪ B| = |A| + |B| − |A ∩ B|",
+      "Union means total inside at least one circle.",
+      "Intersection means overlap."
+    ],
+    visual:"equation",
+    equation:"|A ∪ B| = |A| + |B| − |A ∩ B|"
+  },
+  {
+    name:"Mini Check 2",
+    kind:"quiz",
+    kicker:"Mini Check",
+    title:"Two-Set Counting",
+    question:"In a class of 30 students, 18 like basketball, 12 like soccer, and 5 like both. How many like basketball or soccer?",
+    choices:[
+      "20",
+      "25",
+      "30",
+      "35"
+    ],
+    correct:1,
+    explanation:"Use union formula: 18 + 12 − 5 = 25. So 25 students like basketball or soccer."
+  },
+  {
+    name:"Three-Set Click Lab",
+    kind:"threeLab",
+    kicker:"Click Lab",
+    title:"Three-Set Venn Diagram",
+    subtitle:"Click the seven inside regions and the outside region.",
+    body:"This version is fixed: only three circle outlines are drawn. Each region is a clean non-overlapping piece."
+  },
+  {
+    name:"Three Sets: Center",
+    kind:"content",
+    kicker:"Region",
+    title:"A ∩ B ∩ C",
+    subtitle:"The center is in all three sets.",
+    body:"The center overlap means the object satisfies A, B, and C at the same time.",
+    bullets:[
+      "Likes apples, bananas, and cherries.",
+      "Takes math, science, and art.",
+      "Belongs to all three groups."
+    ],
+    visual:"threeStaticCenter"
+  },
+  {
+    name:"Exactly Two",
+    kind:"content",
+    kicker:"Region",
+    title:"Exactly Two Sets",
+    subtitle:"In two sets, but not the third.",
+    body:"These are the three regions around the center.",
+    bullets:[
+      "A and B, but not C.",
+      "A and C, but not B.",
+      "B and C, but not A."
+    ],
+    visual:"threeStaticExactlyTwo"
+  },
+  {
+    name:"Only One",
+    kind:"content",
+    kicker:"Region",
+    title:"Only One Set",
+    subtitle:"Inside exactly one circle.",
+    body:"These regions satisfy one condition only.",
+    bullets:[
+      "Only A",
+      "Only B",
+      "Only C"
+    ],
+    visual:"threeStaticOnlyOne"
+  },
+  {
+    name:"Three-Set Counting Lab",
+    kind:"countThree",
+    kicker:"Interactive Counting",
+    title:"Three-Set Counting",
+    subtitle:"Change values and see the idea.",
+    body:"Start with the center, then exactly-two regions, then only-one regions."
+  },
+  {
+    name:"Three-Set Formula",
+    kind:"content",
+    kicker:"Formula",
+    title:"Three-Set Inclusion-Exclusion",
+    subtitle:"Add singles, subtract pair overlaps, add the triple overlap.",
+    body:"This formula counts everything in A or B or C exactly once.",
+    bullets:[
+      "Add |A|, |B|, and |C|.",
+      "Subtract pair overlaps.",
+      "Add back the triple overlap."
+    ],
+    visual:"equation",
+    equation:"|A ∪ B ∪ C|\n= |A| + |B| + |C|\n− |A ∩ B| − |A ∩ C| − |B ∩ C|\n+ |A ∩ B ∩ C|"
+  },
+  {
+    name:"Mini Check 3",
+    kind:"quiz",
+    kicker:"Mini Check",
+    title:"Three-Set Center",
+    question:"In a three-set Venn diagram, what does the very center mean?",
+    choices:[
+      "Only A",
+      "A and B, but not C",
+      "In all three sets",
+      "In none of the sets"
+    ],
+    correct:2,
+    explanation:"The very center is the region common to all three circles, so it means in A, B, and C."
+  },
+  {
+    name:"Problem Strategy",
+    kind:"content",
+    kicker:"Strategy",
+    title:"How To Solve Venn Problems",
+    subtitle:"Do not rush. Fill the most specific regions first.",
+    body:"The more specific a region is, the earlier you should fill it.",
+    bullets:[
+      "For 2 sets: start with both.",
+      "For 3 sets: start with all three.",
+      "Then fill exactly two.",
+      "Then fill only one.",
+      "Finally find neither if total is given."
+    ],
+    visual:"map"
+  },
+  {
+    name:"Final Practice",
+    kind:"quiz",
+    kicker:"Final Check",
+    title:"Venn Diagram Counting",
+    question:"There are 40 students. 22 like A, 18 like B, and 10 like both. How many like neither A nor B?",
+    choices:[
+      "5",
+      "8",
+      "10",
+      "12"
+    ],
+    correct:2,
+    explanation:"First find union: 22 + 18 − 10 = 30. Then neither = total − union = 40 − 30 = 10."
+  },
+  {
+    name:"Class Activity",
+    kind:"content",
+    kicker:"Activity",
+    title:"Go To Google Classroom",
+    subtitle:"Open the Venn Diagram practice form.",
+    body:"Now students should complete the assigned practice. Use this lesson to review any region before they start.",
+    bullets:[
+      "Use the two-set lab for basics.",
+      "Use the three-set lab for harder problems.",
+      "Click regions and say the meaning out loud.",
+      "Then start the Google Form."
+    ],
+    visual:"cover"
+  }
+];
+
+let current = 0;
+
+const sceneContainer = document.getElementById("sceneContainer");
+const sceneCount = document.getElementById("sceneCount");
+const sceneNamePill = document.getElementById("sceneNamePill");
+const sceneSelect = document.getElementById("sceneSelect");
+const teacherPanel = document.getElementById("teacherPanel");
+const answerPop = document.getElementById("answerPop");
+
+function safe(str){
+  return String(str || "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/\n/g,"<br>");
+}
+
+function renderContent(s){
+  let left = `
+    <div class="panel">
+      <div class="kicker">${safe(s.kicker)}</div>
+      <h1 class="title">${safe(s.title)}</h1>
+  `;
+
+  if(s.subtitle){
+    left += `<p class="subtitle">${safe(s.subtitle)}</p>`;
+  }
+
+  if(s.body){
+    left += `<p class="body-text">${safe(s.body)}</p>`;
+  }
+
+  if(s.bullets){
+    left += `<div class="bullets">`;
+    left += s.bullets.map(b => `
+      <div class="bullet">
+        <div class="icon">•</div>
+        <div>${safe(b)}</div>
+      </div>
+    `).join("");
+    left += `</div>`;
+  }
+
+  left += `</div>`;
+
+  return `
+    <div class="scene">
+      <div>${left}</div>
+      <div>${renderVisual(s)}</div>
+    </div>
+  `;
+}
+
+function renderVisual(s){
+  if(s.visual === "cover"){
+    return `<div class="visual"><div class="big-orb"></div></div>`;
+  }
+
+  if(s.visual === "map"){
+    return `
+      <div class="visual">
+        <div class="panel" style="width:100%;max-width:720px">
+          <div class="map-grid">
+            <div class="map-card"><h4>Sets</h4><p>A group of objects.</p></div>
+            <div class="map-card"><h4>Regions</h4><p>Each part of the diagram has meaning.</p></div>
+            <div class="map-card"><h4>Operations</h4><p>Union, intersection, complement.</p></div>
+            <div class="map-card"><h4>Counting</h4><p>Use formulas and fill regions.</p></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if(s.visual === "equation"){
+    return `
+      <div class="visual">
+        <div class="equation-card">${safe(s.equation)}</div>
+      </div>
+    `;
+  }
+
+  if(s.visual && s.visual.startsWith("twoStatic")){
+    return `
+      <div class="visual">
+        <div class="lab-box">
+          <div class="lab-title">Two-Set Diagram</div>
+          <div class="lab-sub">Highlighted region: ${safe(s.title)}</div>
+          <div class="venn-card">${twoSetSVG(s.visual)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  if(s.visual && s.visual.startsWith("threeStatic")){
+    return `
+      <div class="visual">
+        <div class="lab-box">
+          <div class="lab-title">Three-Set Diagram</div>
+          <div class="lab-sub">Highlighted region: ${safe(s.title)}</div>
+          <div class="venn-card">${threeSetSVG(s.visual)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  return `<div class="visual"><div class="big-orb"></div></div>`;
+}
+
+function renderQuiz(s){
+  const choices = s.choices.map((c,i) => `
+    <button class="choice" onclick="checkAnswer(${i})">
+      ${String.fromCharCode(65+i)}) ${safe(c)}
+    </button>
+  `).join("");
+
+  return `
+    <div class="scene">
+      <div>
+        <div class="panel">
+          <div class="kicker">${safe(s.kicker)}</div>
+          <h1 class="title">${safe(s.title)}</h1>
+          <p class="subtitle">Click one answer to check.</p>
+          <div class="bullets">
+            <div class="bullet"><div class="icon">✓</div><div>Correct answer turns green.</div></div>
+            <div class="bullet"><div class="icon">?</div><div>Feedback explains the idea.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="visual">
+        <div class="quiz-card">
+          <p class="quiz-question">${safe(s.question)}</p>
+          <div class="choices">${choices}</div>
+          <div id="feedback" class="feedback"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderTwoLab(s){
+  return `
+    <div class="scene">
+      <div>
+        <div class="panel">
+          <div class="kicker">${safe(s.kicker)}</div>
+          <h1 class="title">${safe(s.title)}</h1>
+          <p class="subtitle">${safe(s.subtitle)}</p>
+          <p class="body-text">${safe(s.body)}</p>
+
+          <div class="bullets">
+            <div class="bullet"><div class="icon">A</div><div>Circle A is one group.</div></div>
+            <div class="bullet"><div class="icon">B</div><div>Circle B is another group.</div></div>
+            <div class="bullet"><div class="icon">∩</div><div>The overlap means both.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="visual">
+        <div class="lab-box">
+          <div class="lab-title">Click a Region</div>
+          <div class="lab-sub">Try A only, B only, both, and neither.</div>
+
+          <div class="venn-wrap">
+            <div class="venn-card">${twoSetSVG("interactive")}</div>
+
+            <div class="info-card">
+              <div class="info-title" id="regionTitle">Click a region</div>
+              <div class="info-body" id="regionBody">The meaning will appear here.</div>
+              <div class="info-example" id="regionExample">Example: A = likes apples, B = likes bananas.</div>
+            </div>
+          </div>
+
+          <div class="legend">
+            <span>A only</span>
+            <span>B only</span>
+            <span>A ∩ B</span>
+            <span>Neither</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderThreeLab(s){
+  return `
+    <div class="scene">
+      <div>
+        <div class="panel">
+          <div class="kicker">${safe(s.kicker)}</div>
+          <h1 class="title">${safe(s.title)}</h1>
+          <p class="subtitle">${safe(s.subtitle)}</p>
+          <p class="body-text">${safe(s.body)}</p>
+
+          <div class="bullets">
+            <div class="bullet"><div class="icon">1</div><div>Only one set regions.</div></div>
+            <div class="bullet"><div class="icon">2</div><div>Exactly two set regions.</div></div>
+            <div class="bullet"><div class="icon">3</div><div>The center means all three.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="visual">
+        <div class="lab-box">
+          <div class="lab-title">Click a Region</div>
+          <div class="lab-sub">This diagram has only three real circle outlines.</div>
+
+          <div class="venn-wrap">
+            <div class="venn-card">${threeSetSVG("interactive")}</div>
+
+            <div class="info-card">
+              <div class="info-title" id="regionTitle">Click a region</div>
+              <div class="info-body" id="regionBody">The meaning will appear here.</div>
+              <div class="info-example" id="regionExample">Example: A = apples, B = bananas, C = cherries.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function twoSetSVG(mode){
+  const interactive = mode === "interactive";
+
+  function op(region){
+    if(interactive) return 0.78;
+    if(mode === "twoStaticAOnly") return region === "a" ? 0.88 : 0.07;
+    if(mode === "twoStaticBOnly") return region === "b" ? 0.88 : 0.07;
+    if(mode === "twoStaticBoth") return region === "both" ? 0.88 : 0.07;
+    if(mode === "twoStaticNeither") return region === "neither" ? 0.88 : 0.07;
+    if(mode === "twoStaticUnion") return ["a","b","both"].includes(region) ? 0.88 : 0.07;
+    if(mode === "twoStaticAComp") return ["b","neither"].includes(region) ? 0.88 : 0.07;
+    return 0.2;
+  }
+
+  const click = interactive ? {
+    a:`onclick="showRegion('A only','Inside A, but outside B.\\nMeaning: A and not B.','Example: likes apples but not bananas.')"`,
+    b:`onclick="showRegion('B only','Inside B, but outside A.\\nMeaning: B and not A.','Example: likes bananas but not apples.')"`,
+    both:`onclick="showRegion('A ∩ B','Inside both A and B.\\nMeaning: A and B at the same time.','Example: likes both apples and bananas.')"`,
+    neither:`onclick="showRegion('Neither','Outside A and outside B.\\nMeaning: not A and not B.','Example: likes neither apples nor bananas.')"`
+  } : {a:"",b:"",both:"",neither:""};
+
+  return `
+    <svg viewBox="0 0 620 420">
+      <defs>
+        <clipPath id="twoClipA">
+          <circle cx="260" cy="210" r="135"></circle>
+        </clipPath>
+
+        <clipPath id="twoClipB">
+          <circle cx="360" cy="210" r="135"></circle>
+        </clipPath>
+
+        <mask id="twoNotA">
+          <rect x="0" y="0" width="620" height="420" fill="white"></rect>
+          <circle cx="260" cy="210" r="135" fill="black"></circle>
+        </mask>
+
+        <mask id="twoNotB">
+          <rect x="0" y="0" width="620" height="420" fill="white"></rect>
+          <circle cx="360" cy="210" r="135" fill="black"></circle>
+        </mask>
+
+        <mask id="twoNotAB">
+          <rect x="0" y="0" width="620" height="420" fill="white"></rect>
+          <circle cx="260" cy="210" r="135" fill="black"></circle>
+          <circle cx="360" cy="210" r="135" fill="black"></circle>
+        </mask>
+      </defs>
+
+      <rect x="40" y="45" width="540" height="320" rx="24"
+        fill="rgba(255,255,255,.035)"
+        stroke="rgba(255,255,255,.35)"
+        stroke-width="3"></rect>
+
+      <rect x="40" y="45" width="540" height="320" rx="24"
+        class="region"
+        fill="rgba(255,255,255,.22)"
+        opacity="${op("neither")}"
+        mask="url(#twoNotAB)"
+        ${click.neither}></rect>
+
+      <circle cx="260" cy="210" r="135"
+        class="region"
+        fill="rgba(91,140,255,.90)"
+        opacity="${op("a")}"
+        mask="url(#twoNotB)"
+        ${click.a}></circle>
+
+      <circle cx="360" cy="210" r="135"
+        class="region"
+        fill="rgba(87,242,154,.90)"
+        opacity="${op("b")}"
+        mask="url(#twoNotA)"
+        ${click.b}></circle>
+
+      <g clip-path="url(#twoClipA)">
+        <circle cx="360" cy="210" r="135"
+          class="region"
+          fill="rgba(255,216,107,.92)"
+          opacity="${op("both")}"
+          ${click.both}></circle>
+      </g>
+
+      <circle class="outline" cx="260" cy="210" r="135"></circle>
+      <circle class="outline" cx="360" cy="210" r="135"></circle>
+
+      <text class="label" x="215" y="210">A</text>
+      <text class="label" x="405" y="210">B</text>
+      <text class="tiny-label" x="310" y="210">A ∩ B</text>
+      <text class="tiny-label" x="310" y="386">Universe U</text>
+    </svg>
+  `;
+}
+
+function threeSetSVG(mode){
+  const interactive = mode === "interactive";
+
+  function op(region){
+    if(interactive) return 0.72;
+    if(mode === "threeStaticCenter") return region === "abc" ? 0.92 : 0.06;
+    if(mode === "threeStaticExactlyTwo") return ["ab","ac","bc"].includes(region) ? 0.82 : 0.06;
+    if(mode === "threeStaticOnlyOne") return ["a","b","c"].includes(region) ? 0.82 : 0.06;
+    return 0.18;
+  }
+
+  const click = interactive ? {
+    a:`onclick="showRegion('Only A','Inside A only.\\nNot in B and not in C.','Example: likes only apples.')"`,
+    b:`onclick="showRegion('Only B','Inside B only.\\nNot in A and not in C.','Example: likes only bananas.')"`,
+    c:`onclick="showRegion('Only C','Inside C only.\\nNot in A and not in B.','Example: likes only cherries.')"`,
+    ab:`onclick="showRegion('A ∩ B only','In A and B, but not C.','Example: likes apples and bananas, but not cherries.')"`,
+    ac:`onclick="showRegion('A ∩ C only','In A and C, but not B.','Example: likes apples and cherries, but not bananas.')"`,
+    bc:`onclick="showRegion('B ∩ C only','In B and C, but not A.','Example: likes bananas and cherries, but not apples.')"`,
+    abc:`onclick="showRegion('A ∩ B ∩ C','In all three sets.','Example: likes apples, bananas, and cherries.')"`,
+    neither:`onclick="showRegion('Neither','Outside A, B, and C.','Example: likes none of the three fruits.')"`
+  } : {a:"",b:"",c:"",ab:"",ac:"",bc:"",abc:"",neither:""};
+
+  return `
+    <svg viewBox="0 0 660 470">
+      <defs>
+        <clipPath id="clipA">
+          <circle cx="260" cy="200" r="130"></circle>
+        </clipPath>
+
+        <clipPath id="clipB">
+          <circle cx="400" cy="200" r="130"></circle>
+        </clipPath>
+
+        <clipPath id="clipC">
+          <circle cx="330" cy="315" r="130"></circle>
+        </clipPath>
+
+        <mask id="notA">
+          <rect x="0" y="0" width="660" height="470" fill="white"></rect>
+          <circle cx="260" cy="200" r="130" fill="black"></circle>
+        </mask>
+
+        <mask id="notB">
+          <rect x="0" y="0" width="660" height="470" fill="white"></rect>
+          <circle cx="400" cy="200" r="130" fill="black"></circle>
+        </mask>
+
+        <mask id="notC">
+          <rect x="0" y="0" width="660" height="470" fill="white"></rect>
+          <circle cx="330" cy="315" r="130" fill="black"></circle>
+        </mask>
+
+        <mask id="notBnotC">
+          <rect x="0" y="0" width="660" height="470" fill="white"></rect>
+          <circle cx="400" cy="200" r="130" fill="black"></circle>
+          <circle cx="330" cy="315" r="130" fill="black"></circle>
+        </mask>
+
+        <mask id="notAnotC">
+          <rect x="0" y="0" width="660" height="470" fill="white"></rect>
+          <circle cx="260" cy="200" r="130" fill="black"></circle>
+          <circle cx="330" cy="315" r="130" fill="black"></circle>
+        </mask>
+
+        <mask id="notAnotB">
+          <rect x="0" y="0" width="660" height="470" fill="white"></rect>
+          <circle cx="260" cy="200" r="130" fill="black"></circle>
+          <circle cx="400" cy="200" r="130" fill="black"></circle>
+        </mask>
+
+        <mask id="notABC">
+          <rect x="0" y="0" width="660" height="470" fill="white"></rect>
+          <circle cx="260" cy="200" r="130" fill="black"></circle>
+          <circle cx="400" cy="200" r="130" fill="black"></circle>
+          <circle cx="330" cy="315" r="130" fill="black"></circle>
+        </mask>
+      </defs>
+
+      <rect x="40" y="40" width="580" height="380" rx="24"
+        fill="rgba(255,255,255,.035)"
+        stroke="rgba(255,255,255,.35)"
+        stroke-width="3"></rect>
+
+      <rect x="40" y="40" width="580" height="380" rx="24"
+        class="region"
+        fill="rgba(255,255,255,.22)"
+        opacity="${interactive ? 0.18 : 0.06}"
+        mask="url(#notABC)"
+        ${click.neither}></rect>
+
+      <circle cx="260" cy="200" r="130"
+        class="region"
+        fill="rgba(91,140,255,.90)"
+        opacity="${op("a")}"
+        mask="url(#notBnotC)"
+        ${click.a}></circle>
+
+      <circle cx="400" cy="200" r="130"
+        class="region"
+        fill="rgba(87,242,154,.90)"
+        opacity="${op("b")}"
+        mask="url(#notAnotC)"
+        ${click.b}></circle>
+
+      <circle cx="330" cy="315" r="130"
+        class="region"
+        fill="rgba(255,111,145,.90)"
+        opacity="${op("c")}"
+        mask="url(#notAnotB)"
+        ${click.c}></circle>
+
+      <g clip-path="url(#clipA)">
+        <circle cx="400" cy="200" r="130"
+          class="region"
+          fill="rgba(255,216,107,.92)"
+          opacity="${op("ab")}"
+          mask="url(#notC)"
+          ${click.ab}></circle>
+      </g>
+
+      <g clip-path="url(#clipA)">
+        <circle cx="330" cy="315" r="130"
+          class="region"
+          fill="rgba(179,135,255,.92)"
+          opacity="${op("ac")}"
+          mask="url(#notB)"
+          ${click.ac}></circle>
+      </g>
+
+      <g clip-path="url(#clipB)">
+        <circle cx="330" cy="315" r="130"
+          class="region"
+          fill="rgba(255,173,92,.92)"
+          opacity="${op("bc")}"
+          mask="url(#notA)"
+          ${click.bc}></circle>
+      </g>
+
+      <g clip-path="url(#clipA)">
+        <g clip-path="url(#clipB)">
+          <circle cx="330" cy="315" r="130"
+            class="region"
+            fill="rgba(255,255,255,.95)"
+            opacity="${op("abc")}"
+            ${click.abc}></circle>
+        </g>
+      </g>
+
+      <circle class="outline" cx="260" cy="200" r="130"></circle>
+      <circle class="outline" cx="400" cy="200" r="130"></circle>
+      <circle class="outline" cx="330" cy="315" r="130"></circle>
+
+      <text class="label" x="210" y="155">A</text>
+      <text class="label" x="450" y="155">B</text>
+      <text class="label" x="330" y="390">C</text>
+      <text class="tiny-label" x="330" y="262">A∩B∩C</text>
+      <text class="tiny-label" x="330" y="445">Universe U</text>
+    </svg>
+  `;
+}
+
+function renderCountTwo(s){
+  return `
+    <div class="scene">
+      <div>
+        <div class="panel">
+          <div class="kicker">${safe(s.kicker)}</div>
+          <h1 class="title">${safe(s.title)}</h1>
+          <p class="subtitle">${safe(s.subtitle)}</p>
+          <p class="body-text">${safe(s.body)}</p>
+
+          <div class="bullets">
+            <div class="bullet"><div class="icon">1</div><div>Both goes in the middle.</div></div>
+            <div class="bullet"><div class="icon">2</div><div>A only = A total − both.</div></div>
+            <div class="bullet"><div class="icon">3</div><div>B only = B total − both.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="visual">
+        <div class="lab-box">
+          <div class="lab-title">Two-Set Counting Lab</div>
+
+          <div class="counter-grid">
+            <div class="stat-box"><h4>Total in A</h4><div class="stat-value" id="twoAVal">18</div></div>
+            <div class="stat-box"><h4>Total in B</h4><div class="stat-value" id="twoBVal">12</div></div>
+            <div class="stat-box"><h4>Both</h4><div class="stat-value" id="twoBothVal">5</div></div>
+            <div class="stat-box"><h4>Union</h4><div class="stat-value" id="twoUnionVal">25</div></div>
+          </div>
+
+          <div class="slider-wrap">
+            <label><span>A total</span><span id="twoAShow">18</span></label>
+            <input id="twoA" type="range" min="5" max="40" value="18" oninput="updateTwoCount()">
+          </div>
+
+          <div class="slider-wrap">
+            <label><span>B total</span><span id="twoBShow">12</span></label>
+            <input id="twoB" type="range" min="5" max="40" value="12" oninput="updateTwoCount()">
+          </div>
+
+          <div class="slider-wrap">
+            <label><span>Both</span><span id="twoBothShow">5</span></label>
+            <input id="twoBoth" type="range" min="0" max="12" value="5" oninput="updateTwoCount()">
+          </div>
+
+          <div class="formula-panel" id="twoFormula">
+            A only = 13, Both = 5, B only = 7, Union = 25
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCountThree(s){
+  return `
+    <div class="scene">
+      <div>
+        <div class="panel">
+          <div class="kicker">${safe(s.kicker)}</div>
+          <h1 class="title">${safe(s.title)}</h1>
+          <p class="subtitle">${safe(s.subtitle)}</p>
+          <p class="body-text">${safe(s.body)}</p>
+
+          <div class="bullets">
+            <div class="bullet"><div class="icon">1</div><div>Start with all three.</div></div>
+            <div class="bullet"><div class="icon">2</div><div>Then exactly two regions.</div></div>
+            <div class="bullet"><div class="icon">3</div><div>Then only one regions.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="visual">
+        <div class="lab-box">
+          <div class="lab-title">Three-Set Counting Lab</div>
+
+          <div class="counter-grid">
+            <div class="stat-box"><h4>A</h4><div class="stat-value" id="threeAVal">20</div></div>
+            <div class="stat-box"><h4>B</h4><div class="stat-value" id="threeBVal">18</div></div>
+            <div class="stat-box"><h4>C</h4><div class="stat-value" id="threeCVal">16</div></div>
+            <div class="stat-box"><h4>All Three</h4><div class="stat-value" id="threeAllVal">4</div></div>
+          </div>
+
+          <div class="slider-wrap">
+            <label><span>A total</span><span id="threeAShow">20</span></label>
+            <input id="threeA" type="range" min="10" max="40" value="20" oninput="updateThreeCount()">
+          </div>
+
+          <div class="slider-wrap">
+            <label><span>B total</span><span id="threeBShow">18</span></label>
+            <input id="threeB" type="range" min="10" max="40" value="18" oninput="updateThreeCount()">
+          </div>
+
+          <div class="slider-wrap">
+            <label><span>C total</span><span id="threeCShow">16</span></label>
+            <input id="threeC" type="range" min="10" max="40" value="16" oninput="updateThreeCount()">
+          </div>
+
+          <div class="slider-wrap">
+            <label><span>All three</span><span id="threeAllShow">4</span></label>
+            <input id="threeAll" type="range" min="0" max="10" value="4" oninput="updateThreeCount()">
+          </div>
+
+          <div class="formula-panel" id="threeFormula">
+            Center = 4. Start from the center, then move outward.
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderScene(i){
+  current = Math.max(0, Math.min(scenes.length - 1, i));
+  const s = scenes[current];
+
+  if(s.kind === "quiz"){
+    sceneContainer.innerHTML = renderQuiz(s);
+  }else if(s.kind === "twoLab"){
+    sceneContainer.innerHTML = renderTwoLab(s);
+  }else if(s.kind === "threeLab"){
+    sceneContainer.innerHTML = renderThreeLab(s);
+  }else if(s.kind === "countTwo"){
+    sceneContainer.innerHTML = renderCountTwo(s);
+  }else if(s.kind === "countThree"){
+    sceneContainer.innerHTML = renderCountThree(s);
+  }else{
+    sceneContainer.innerHTML = renderContent(s);
+  }
+
+  sceneCount.textContent = (current + 1) + " / " + scenes.length;
+  sceneNamePill.textContent = (current + 1) + ". " + s.name;
+  sceneSelect.value = String(current);
+  answerPop.className = "answer-pop";
+
+  updateTwoCount();
+  updateThreeCount();
+}
+
+function showRegion(title, body, example){
+  const t = document.getElementById("regionTitle");
+  const b = document.getElementById("regionBody");
+  const e = document.getElementById("regionExample");
+
+  if(t) t.textContent = title;
+  if(b) b.textContent = body;
+  if(e) e.textContent = example;
+}
+
+function checkAnswer(idx){
+  const s = scenes[current];
+  if(!s || s.kind !== "quiz") return;
+
+  const buttons = [...document.querySelectorAll(".choice")];
+
+  buttons.forEach((b,i)=>{
+    b.classList.remove("correct","wrong");
+    if(i === s.correct) b.classList.add("correct");
+  });
+
+  const fb = document.getElementById("feedback");
+
+  if(idx === s.correct){
+    fb.className = "feedback good show";
+    fb.innerHTML = "<strong>Correct!</strong><br>" + safe(s.explanation);
+    showPop("Correct!","good");
+  }else{
+    buttons[idx].classList.add("wrong");
+    fb.className = "feedback bad show";
+    fb.innerHTML = "<strong>Try Again.</strong><br>" + safe(s.explanation);
+    showPop("Try Again","bad");
+  }
+}
+
+function showPop(text,type){
+  answerPop.textContent = text;
+  answerPop.className = "answer-pop " + type + " show";
+  setTimeout(()=>answerPop.className = "answer-pop",1300);
+}
+
+function updateTwoCount(){
+  const aEl = document.getElementById("twoA");
+  const bEl = document.getElementById("twoB");
+  const bothEl = document.getElementById("twoBoth");
+
+  if(!aEl || !bEl || !bothEl) return;
+
+  let A = Number(aEl.value);
+  let B = Number(bEl.value);
+  let both = Number(bothEl.value);
+
+  both = Math.min(both, A, B);
+  bothEl.value = both;
+
+  const aOnly = A - both;
+  const bOnly = B - both;
+  const union = aOnly + both + bOnly;
+
+  document.getElementById("twoAVal").textContent = A;
+  document.getElementById("twoBVal").textContent = B;
+  document.getElementById("twoBothVal").textContent = both;
+  document.getElementById("twoUnionVal").textContent = union;
+
+  document.getElementById("twoAShow").textContent = A;
+  document.getElementById("twoBShow").textContent = B;
+  document.getElementById("twoBothShow").textContent = both;
+
+  document.getElementById("twoFormula").textContent =
+    "A only = " + aOnly +
+    ", Both = " + both +
+    ", B only = " + bOnly +
+    ", Union = " + A + " + " + B + " − " + both + " = " + union;
+}
+
+function updateThreeCount(){
+  const aEl = document.getElementById("threeA");
+  const bEl = document.getElementById("threeB");
+  const cEl = document.getElementById("threeC");
+  const allEl = document.getElementById("threeAll");
+
+  if(!aEl || !bEl || !cEl || !allEl) return;
+
+  const A = Number(aEl.value);
+  const B = Number(bEl.value);
+  const C = Number(cEl.value);
+  let all = Number(allEl.value);
+
+  all = Math.min(all, A, B, C);
+  allEl.value = all;
+
+  document.getElementById("threeAVal").textContent = A;
+  document.getElementById("threeBVal").textContent = B;
+  document.getElementById("threeCVal").textContent = C;
+  document.getElementById("threeAllVal").textContent = all;
+
+  document.getElementById("threeAShow").textContent = A;
+  document.getElementById("threeBShow").textContent = B;
+  document.getElementById("threeCShow").textContent = C;
+  document.getElementById("threeAllShow").textContent = all;
+
+  document.getElementById("threeFormula").textContent =
+    "All three = " + all +
+    ". For a full problem, fill this center first, then subtract it from pair overlaps.";
+}
+
+function nextScene(){
+  renderScene(current + 1);
+}
+
+function prevScene(){
+  renderScene(current - 1);
+}
+
+function jumpScene(){
+  renderScene(Number(sceneSelect.value));
+}
+
+function toggleTeacherPanel(){
+  teacherPanel.classList.toggle("show");
+}
+
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen();
+  }else{
+    document.exitFullscreen();
+  }
+}
+
+function resetCurrentInteraction(){
+  const s = scenes[current];
+
+  if(s.kind === "quiz"){
+    const fb = document.getElementById("feedback");
+    if(fb) fb.className = "feedback";
+    document.querySelectorAll(".choice").forEach(b=>b.classList.remove("correct","wrong"));
+  }
+
+  if(s.kind === "twoLab" || s.kind === "threeLab"){
+    showRegion("Click a region","The meaning will appear here.","Example appears here.");
+  }
+
+  if(s.kind === "countTwo"){
+    document.getElementById("twoA").value = 18;
+    document.getElementById("twoB").value = 12;
+    document.getElementById("twoBoth").value = 5;
+    updateTwoCount();
+  }
+
+  if(s.kind === "countThree"){
+    document.getElementById("threeA").value = 20;
+    document.getElementById("threeB").value = 18;
+    document.getElementById("threeC").value = 16;
+    document.getElementById("threeAll").value = 4;
+    updateThreeCount();
+  }
+
+  answerPop.className = "answer-pop";
+}
+
+function init(){
+  sceneSelect.innerHTML = "";
+
+  scenes.forEach((s,i)=>{
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = (i + 1) + ". " + s.name;
+    sceneSelect.appendChild(opt);
+  });
+
+  renderScene(0);
+  console.log("Venn Diagram Interactive Lab loaded. Pages:", scenes.length);
+}
+
+Object.assign(window,{
+  nextScene,
+  prevScene,
+  jumpScene,
+  toggleTeacherPanel,
+  toggleFullscreen,
+  resetCurrentInteraction,
+  checkAnswer,
+  showRegion,
+  updateTwoCount,
+  updateThreeCount
+});
+
+document.addEventListener("keydown", e=>{
+  if(e.key === "ArrowRight" || e.key === " "){
+    e.preventDefault();
+    nextScene();
+  }
+
+  if(e.key === "ArrowLeft"){
+    e.preventDefault();
+    prevScene();
+  }
+
+  if(e.key.toLowerCase() === "f"){
+    e.preventDefault();
+    toggleFullscreen();
+  }
+
+  if(e.key.toLowerCase() === "t"){
+    e.preventDefault();
+    toggleTeacherPanel();
+  }
+});
+
+init();
+
+})();
+</script>
+</body>
+</html>
