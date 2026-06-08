@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grade 4 Math Mission Arcade</title>
+  <style>
+    :root{
+      --cyan:#63e6ff; --blue:#69a4ff; --green:#66f2a2; --yellow:#ffe06b;
+      --orange:#ffb15f; --red:#ff6f91; --purple:#b791ff; --white:#f1f7ff;
+      --muted:#b9c8ef; --dark:#08142f;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0; width:100%; min-height:100%;
+      font-family:Arial, Helvetica, sans-serif; color:var(--white);
+      background:radial-gradient(circle at 20% 10%,#25469c,#0b1d48 38%,#061126 72%,#02040c);
+    }
+    body{overflow-x:hidden}
+    .stars,.grid{position:fixed;inset:0;pointer-events:none;z-index:0}
+    .stars{
+      background-image:radial-gradient(circle,rgba(255,255,255,.38) 1px,transparent 1px),
+        radial-gradient(circle,rgba(99,230,255,.22) 1px,transparent 1px);
+      background-size:70px 70px,110px 110px;opacity:.42;animation:drift 18s linear infinite
+    }
+    .grid{
+      background-image:linear-gradient(rgba(99,230,255,.07) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(99,230,255,.07) 1px,transparent 1px);
+      background-size:56px 56px;opacity:.18
+    }
+    @keyframes drift{from{transform:translateY(0)}to{transform:translateY(120px)}}
+    .app{position:relative;z-index:1;max-width:1220px;margin:0 auto;padding:22px}
+    .topbar{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:14px}
+    .logo{
+      width:54px;height:54px;border-radius:18px;background:linear-gradient(135deg,var(--cyan),var(--purple));
+      box-shadow:0 0 30px rgba(99,230,255,.35);display:flex;align-items:center;justify-content:center;
+      font-size:28px;font-weight:900;color:#071126
+    }
+    h1{margin:0;font-size:clamp(28px,4vw,54px);line-height:1;font-weight:900;letter-spacing:-.04em}
+    .sub{color:var(--muted);font-size:14px;margin-top:6px}
+    .pill{padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--muted);font-weight:800;font-size:13px}
+    .screen{display:none}.screen.active{display:block}
+    .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:20px;align-items:stretch}
+    .panel{
+      background:linear-gradient(135deg,rgba(21,42,96,.85),rgba(10,20,48,.86));
+      border:1px solid rgba(99,230,255,.16);border-radius:28px;padding:26px;
+      box-shadow:0 22px 60px rgba(0,0,0,.32),inset 0 0 34px rgba(99,230,255,.04)
+    }
+    .kicker{display:inline-block;padding:8px 13px;border-radius:999px;background:rgba(99,230,255,.1);border:1px solid rgba(99,230,255,.18);color:var(--cyan);text-transform:uppercase;letter-spacing:.1em;font-size:12px;font-weight:900;margin-bottom:14px}
+    .big{font-size:clamp(32px,4vw,56px);line-height:1;font-weight:900;margin:0 0 12px;letter-spacing:-.04em}
+    .body{font-size:20px;line-height:1.45;color:#edf5ff;margin:0 0 14px}
+    .rules{display:grid;gap:12px;margin-top:18px}
+    .rule{display:flex;gap:12px;align-items:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:14px 16px;font-size:18px;line-height:1.35}
+    .icon{width:34px;height:34px;border-radius:12px;background:rgba(99,230,255,.13);color:var(--cyan);display:flex;align-items:center;justify-content:center;font-weight:900;flex:0 0 auto}
+    input.name{width:100%;max-width:420px;padding:14px 16px;border-radius:16px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:var(--white);font-size:18px;font-weight:800;outline:none}
+    input.name::placeholder{color:#9eb1df}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}
+    button{
+      border:0;border-radius:999px;padding:12px 18px;cursor:pointer;font-weight:900;color:#071126;
+      background:linear-gradient(135deg,var(--cyan),var(--blue));box-shadow:0 10px 24px rgba(105,164,255,.25);transition:.15s
+    }
+    button:hover{transform:translateY(-1px);filter:brightness(1.08)}
+    button.secondary{color:var(--white);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);box-shadow:none}
+    button.green{background:linear-gradient(135deg,var(--green),#32d68e);color:#052719}
+    button.yellow{background:linear-gradient(135deg,var(--yellow),#ffc247);color:#2b1900}
+    button.red{background:linear-gradient(135deg,#ff99aa,var(--red));color:#33000b}
+    button:disabled{opacity:.45;cursor:not-allowed;transform:none;filter:none}
+    .mission-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:18px}
+    .mission-card{border-radius:22px;padding:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);min-height:160px;display:flex;flex-direction:column;justify-content:space-between}
+    .mission-card h3{margin:0 0 8px;font-size:18px;color:var(--cyan)}
+    .mission-card p{margin:0;color:var(--muted);font-size:13px;line-height:1.35}
+    .status{font-weight:900;margin-top:10px;font-size:13px;color:var(--yellow)}
+    .progress-wrap{margin:16px 0 4px}
+    .progress-label{display:flex;justify-content:space-between;color:var(--muted);font-weight:800;font-size:13px;margin-bottom:8px}
+    .bar{height:18px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);overflow:hidden}
+    .fill{height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--cyan));transition:.25s}
+    .play-layout{display:grid;grid-template-columns:.75fr 1.25fr;gap:20px;align-items:start}
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .stat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:14px}
+    .stat h4{margin:0 0 8px;color:var(--cyan);font-size:14px}
+    .stat div{font-size:26px;font-weight:900}
+    .question-box{min-height:430px;display:flex;flex-direction:column;justify-content:center}
+    .q-title{font-size:clamp(26px,3vw,44px);font-weight:900;line-height:1.18;margin:0 0 18px}
+    .q-sub{color:var(--muted);font-size:16px;margin-bottom:20px;line-height:1.4}
+    .choices{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .choice{border-radius:18px;padding:18px 20px;font-size:22px;font-weight:900;color:var(--white);text-align:left;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);box-shadow:none}
+    .choice.correct{background:rgba(102,242,162,.18);border-color:rgba(102,242,162,.55);color:var(--green)}
+    .choice.wrong{background:rgba(255,111,145,.18);border-color:rgba(255,111,145,.55);color:var(--red)}
+    .feedback{display:none;margin-top:16px;border-radius:18px;padding:16px 18px;font-size:18px;line-height:1.4;font-weight:800}
+    .feedback.show{display:block}.feedback.good{background:rgba(102,242,162,.14);border:1px solid rgba(102,242,162,.38);color:#e5fff0}.feedback.bad{background:rgba(255,111,145,.14);border:1px solid rgba(255,111,145,.38);color:#ffe6ec}
+    .hidden{display:none}
+    .fix-list{display:grid;gap:12px;margin-top:14px}
+    .fix-item{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:16px}
+    .fix-item strong{color:var(--yellow)}
+    .warn{background:rgba(255,216,107,.13);border:1px solid rgba(255,216,107,.4);color:#fff2b8;border-radius:18px;padding:14px 16px;font-weight:800;line-height:1.4}
+    .certificate{background:linear-gradient(135deg,#fff8de,#eaf7ff);color:#0d1d44;border-radius:30px;padding:36px;border:8px solid #ffd86b;box-shadow:0 30px 90px rgba(0,0,0,.35);text-align:center;position:relative;overflow:hidden}
+    .certificate:before,.certificate:after{content:"★";position:absolute;font-size:120px;color:rgba(255,216,107,.22)}
+    .certificate:before{left:22px;top:12px}.certificate:after{right:22px;bottom:12px}
+    .cert-kicker{font-weight:900;letter-spacing:.18em;color:#3652a3;text-transform:uppercase}
+    .cert-title{font-size:52px;font-weight:900;margin:10px 0;color:#0d1d44}
+    .cert-name{font-size:42px;font-weight:900;color:#0a7a58;margin:16px 0;border-bottom:3px solid #0a7a58;display:inline-block;padding:0 30px 8px}
+    .cert-body{font-size:20px;line-height:1.45;color:#22345f;max-width:760px;margin:0 auto 16px}
+    .cert-code{display:inline-block;margin-top:10px;padding:12px 18px;border-radius:14px;background:#0d1d44;color:#fff;font-weight:900;letter-spacing:.08em}
+    @media(max-width:980px){.hero,.play-layout{grid-template-columns:1fr}.mission-grid{grid-template-columns:1fr 1fr}.choices{grid-template-columns:1fr}}
+    @media(max-width:620px){.mission-grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr}.app{padding:14px}.panel{padding:18px}.cert-title{font-size:34px}.cert-name{font-size:30px}}
+    @media print{body{background:white}.stars,.grid,.topbar,.row.no-print,.panel.no-print{display:none!important}.app{max-width:none;padding:0}.screen{display:block}.certificate{box-shadow:none;margin:0;border-color:#111}}
+  </style>
+</head>
+<body>
+<div class="stars"></div><div class="grid"></div>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">4</div>
+      <div>
+        <h1>Math Mission Arcade</h1>
+        <div class="sub">Grade 4 · No Venn diagrams · Finish all missions + fix mistakes to unlock certificate</div>
+      </div>
+    </div>
+    <div class="pill" id="topStatus">Mission Control</div>
+  </div>
+
+  <section id="home" class="screen active">
+    <div class="hero">
+      <div class="panel">
+        <div class="kicker">Mission Control</div>
+        <div class="big">Earn Your Math Pass</div>
+        <p class="body">Complete every mission. If you miss a question, it goes to the Fix Station. The certificate unlocks only after every mission is complete and every missed question is fixed.</p>
+        <input id="studentName" class="name" placeholder="Student name" />
+        <div class="row">
+          <button onclick="startGame()">Start / Continue</button>
+          <button class="secondary" onclick="resetAll()">Reset Game</button>
+        </div>
+        <div class="rules">
+          <div class="rule"><div class="icon">1</div><div>5 missions, 15 questions each: 75 total practice questions.</div></div>
+          <div class="rule"><div class="icon">2</div><div>Topics: place value, operations, fractions, time, money, area, and perimeter.</div></div>
+          <div class="rule"><div class="icon">3</div><div>Wrong answers must be fixed in Fix Station.</div></div>
+          <div class="rule"><div class="icon">✓</div><div>Show the certificate screen to your teacher before going to Google Classroom.</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="kicker">Progress</div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Overall completion</span><span id="overallText">0%</span></div>
+          <div class="bar"><div id="overallFill" class="fill"></div></div>
+        </div>
+        <div class="mission-grid" id="missionGrid"></div>
+        <div id="unlockWarning" class="warn" style="margin-top:16px">Certificate locked: finish all missions and clear Fix Station.</div>
+        <div class="row">
+          <button class="green" onclick="openFixStation()">Open Fix Station</button>
+          <button class="yellow" id="certBtn" onclick="openCertificate()" disabled>Unlock Certificate</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="play" class="screen">
+    <div class="play-layout">
+      <div class="panel no-print">
+        <div class="kicker" id="missionKicker">Mission</div>
+        <div class="big" id="missionTitle">Mission Title</div>
+        <p class="body" id="missionDesc">Description</p>
+        <div class="stats">
+          <div class="stat"><h4>Question</h4><div id="qNumber">1/15</div></div>
+          <div class="stat"><h4>Correct</h4><div id="scoreBox">0</div></div>
+          <div class="stat"><h4>Fix Needed</h4><div id="fixCountBox">0</div></div>
+          <div class="stat"><h4>Status</h4><div id="missionStatusBox">Play</div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Mission progress</span><span id="missionProgressText">0%</span></div>
+          <div class="bar"><div id="missionFill" class="fill"></div></div>
+        </div>
+        <div class="row">
+          <button class="secondary" onclick="goHome()">Back to Mission Control</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="question-box">
+          <div class="kicker" id="qType">Question</div>
+          <div class="q-title" id="questionText">Question text</div>
+          <div class="q-sub" id="questionHint">Choose the best answer.</div>
+          <div class="choices" id="choices"></div>
+          <div id="feedback" class="feedback"></div>
+          <div class="row">
+            <button id="nextBtn" class="green hidden" onclick="nextQuestion()">Next Question</button>
+            <button id="finishMissionBtn" class="yellow hidden" onclick="finishMission()">Finish Mission</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="fix" class="screen">
+    <div class="panel">
+      <div class="kicker">Fix Station</div>
+      <div class="big">Fix Every Missed Question</div>
+      <p class="body">Answer each missed question correctly to clear it. The certificate stays locked until this page is empty.</p>
+      <div id="fixArea"></div>
+      <div class="row">
+        <button class="secondary" onclick="goHome()">Back to Mission Control</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="certificate" class="screen">
+    <div class="certificate">
+      <div class="cert-kicker">Certificate of Completion</div>
+      <div class="cert-title">Grade 4 Math Mission Pass</div>
+      <div class="cert-body">This certifies that</div>
+      <div class="cert-name" id="certName">Student</div>
+      <div class="cert-body">completed all 5 math missions, fixed all missed questions, and is ready to go to Google Classroom.</div>
+      <div class="cert-body"><strong>Missions completed:</strong> Number Ninja · Operation Quest · Fraction Planet · Time & Money Market · Area Builder</div>
+      <div class="cert-code" id="certCode">CHECK CODE</div>
+      <div class="cert-body" id="certDate" style="margin-top:14px"></div>
+    </div>
+    <div class="row no-print" style="justify-content:center">
+      <button onclick="window.print()">Print / Save Certificate</button>
+      <button class="secondary" onclick="goHome()">Back</button>
+    </div>
+  </section>
+</div>
+
+<script>
+'use strict';
+
+const missions = [{"id": "number", "emoji": "🥷", "title": "Number Ninja", "desc": "Place value, rounding, comparing, and number patterns.", "questions": [{"id": "n1", "type": "Place Value", "text": "What is the value of the 7 in 47,312?", "choices": ["7", "70", "700", "7,000"], "answer": 3, "solution": "The 7 is in the thousands place, so its value is 7,000."}, {"id": "n2", "type": "Rounding", "text": "Round 6,482 to the nearest hundred.", "choices": ["6,400", "6,500", "6,480", "6,000"], "answer": 1, "solution": "The tens digit is 8, so 6,482 rounds to 6,500."}, {"id": "n3", "type": "Compare", "text": "Which number is greatest?", "choices": ["9,876", "9,867", "9,786", "9,768"], "answer": 0, "solution": "Compare from left to right. 9,876 is the greatest."}, {"id": "n4", "type": "Expanded Form", "text": "Which equals 5,306?", "choices": ["5,000 + 300 + 6", "5,000 + 30 + 6", "500 + 300 + 6", "5,000 + 3 + 6"], "answer": 0, "solution": "5,306 = 5,000 + 300 + 6."}, {"id": "n5", "type": "Pattern", "text": "What is the next number: 12, 18, 24, 30, __?", "choices": ["32", "34", "36", "40"], "answer": 2, "solution": "The pattern adds 6 each time. 30 + 6 = 36."}, {"id": "n6", "type": "Rounding", "text": "Round 3,749 to the nearest thousand.", "choices": ["3,000", "3,700", "4,000", "3,800"], "answer": 2, "solution": "The hundreds digit is 7, so round up to 4,000."}, {"id": "n7", "type": "Place Value", "text": "In 82,459, which digit is in the hundreds place?", "choices": ["2", "4", "5", "9"], "answer": 1, "solution": "The hundreds place is the third digit from the right: 4."}, {"id": "n8", "type": "Compare", "text": "Which symbol makes this true? 4,508 ___ 4,580", "choices": [">", "<", "=", "+"], "answer": 1, "solution": "4,508 is less than 4,580."}, {"id": "n9", "type": "Pattern", "text": "What is missing: 95, 90, 85, __, 75?", "choices": ["84", "80", "70", "65"], "answer": 1, "solution": "Subtract 5 each time. 85 − 5 = 80."}, {"id": "n10", "type": "Standard Form", "text": "What number is 8,000 + 600 + 40 + 2?", "choices": ["8,642", "8,624", "8,462", "86,402"], "answer": 0, "solution": "8,000 + 600 + 40 + 2 = 8,642."}, {"id": "n11", "type": "Rounding", "text": "Round 28,163 to the nearest ten.", "choices": ["28,160", "28,170", "28,100", "28,000"], "answer": 0, "solution": "The ones digit is 3, so 28,163 rounds to 28,160."}, {"id": "n12", "type": "Place Value", "text": "How many hundreds are in 2,400?", "choices": ["24", "240", "2,400", "12"], "answer": 0, "solution": "2,400 ÷ 100 = 24."}, {"id": "n13", "type": "Compare", "text": "Which number is least?", "choices": ["6,204", "6,240", "6,042", "6,420"], "answer": 2, "solution": "6,042 is least because its hundreds digit is 0."}, {"id": "n14", "type": "Pattern", "text": "What is the rule for 8, 16, 24, 32?", "choices": ["Add 4", "Add 6", "Add 8", "Multiply by 8"], "answer": 2, "solution": "Each number increases by 8."}, {"id": "n15", "type": "Rounding", "text": "Round 14,951 to the nearest thousand.", "choices": ["14,000", "14,900", "15,000", "20,000"], "answer": 2, "solution": "The hundreds digit is 9, so round up to 15,000."}]}, {"id": "ops", "emoji": "⚔️", "title": "Operation Quest", "desc": "Addition, subtraction, multiplication, division, and simple word problems.", "questions": [{"id": "o1", "type": "Multiplication", "text": "What is 7 × 8?", "choices": ["54", "56", "63", "64"], "answer": 1, "solution": "7 × 8 = 56."}, {"id": "o2", "type": "Division", "text": "What is 72 ÷ 9?", "choices": ["6", "7", "8", "9"], "answer": 2, "solution": "9 × 8 = 72, so 72 ÷ 9 = 8."}, {"id": "o3", "type": "Addition", "text": "What is 3,485 + 2,176?", "choices": ["5,551", "5,661", "5,751", "6,661"], "answer": 1, "solution": "3,485 + 2,176 = 5,661."}, {"id": "o4", "type": "Subtraction", "text": "What is 6,000 − 2,475?", "choices": ["3,425", "3,525", "3,625", "4,525"], "answer": 1, "solution": "6,000 − 2,475 = 3,525."}, {"id": "o5", "type": "Word Problem", "text": "A box has 9 rows of pencils with 6 pencils in each row. How many pencils?", "choices": ["45", "54", "63", "69"], "answer": 1, "solution": "9 × 6 = 54."}, {"id": "o6", "type": "Division", "text": "48 cookies are shared equally by 6 kids. How many per kid?", "choices": ["6", "7", "8", "9"], "answer": 2, "solution": "48 ÷ 6 = 8."}, {"id": "o7", "type": "Multiplication", "text": "What is 12 × 4?", "choices": ["36", "44", "48", "52"], "answer": 2, "solution": "12 × 4 = 48."}, {"id": "o8", "type": "Order of Operations", "text": "What is 6 + 4 × 3?", "choices": ["18", "30", "16", "24"], "answer": 0, "solution": "Multiply first: 4 × 3 = 12. Then 6 + 12 = 18."}, {"id": "o9", "type": "Word Problem", "text": "Mia reads 18 pages each day for 5 days. How many pages?", "choices": ["80", "90", "95", "100"], "answer": 1, "solution": "18 × 5 = 90."}, {"id": "o10", "type": "Subtraction", "text": "What is 9,302 − 4,118?", "choices": ["5,184", "5,194", "5,284", "4,184"], "answer": 0, "solution": "9,302 − 4,118 = 5,184."}, {"id": "o11", "type": "Division", "text": "What is 96 ÷ 8?", "choices": ["10", "11", "12", "13"], "answer": 2, "solution": "8 × 12 = 96, so 96 ÷ 8 = 12."}, {"id": "o12", "type": "Word Problem", "text": "There are 7 bags with 24 marbles in each bag. How many marbles?", "choices": ["148", "158", "168", "178"], "answer": 2, "solution": "7 × 24 = 168."}, {"id": "o13", "type": "Addition", "text": "What is 7,805 + 1,437?", "choices": ["9,142", "9,242", "8,242", "9,232"], "answer": 1, "solution": "7,805 + 1,437 = 9,242."}, {"id": "o14", "type": "Division", "text": "What is 84 ÷ 7?", "choices": ["10", "11", "12", "13"], "answer": 2, "solution": "7 × 12 = 84."}, {"id": "o15", "type": "Word Problem", "text": "A class has 4 tables. Each table has 6 students. How many students?", "choices": ["10", "20", "24", "30"], "answer": 2, "solution": "4 × 6 = 24."}]}, {"id": "fraction", "emoji": "🪐", "title": "Fraction Planet", "desc": "Basic fractions, equivalent fractions, comparing, and same-denominator operations.", "questions": [{"id": "f1", "type": "Fractions", "text": "Which fraction is equal to 1/2?", "choices": ["2/3", "2/4", "3/4", "1/4"], "answer": 1, "solution": "2/4 simplifies to 1/2."}, {"id": "f2", "type": "Fractions", "text": "Which is greater: 3/8 or 5/8?", "choices": ["3/8", "5/8", "Equal", "Cannot tell"], "answer": 1, "solution": "Same denominator: compare numerators. 5/8 is greater."}, {"id": "f3", "type": "Add Fractions", "text": "What is 2/7 + 3/7?", "choices": ["5/14", "5/7", "6/7", "1/7"], "answer": 1, "solution": "Same denominator: add numerators. 2/7 + 3/7 = 5/7."}, {"id": "f4", "type": "Subtract Fractions", "text": "What is 6/9 − 2/9?", "choices": ["4/9", "4/18", "8/9", "2/9"], "answer": 0, "solution": "Same denominator: 6/9 − 2/9 = 4/9."}, {"id": "f5", "type": "Equivalent", "text": "Which fraction equals 3/5?", "choices": ["6/10", "3/10", "5/3", "9/10"], "answer": 0, "solution": "Multiply numerator and denominator by 2: 3/5 = 6/10."}, {"id": "f6", "type": "Unit Fraction", "text": "Which is a unit fraction?", "choices": ["2/5", "3/7", "1/8", "4/9"], "answer": 2, "solution": "A unit fraction has numerator 1."}, {"id": "f7", "type": "Compare", "text": "Which is greater: 1/3 or 1/6?", "choices": ["1/3", "1/6", "Equal", "Cannot tell"], "answer": 0, "solution": "For unit fractions, smaller denominator means larger piece. 1/3 > 1/6."}, {"id": "f8", "type": "Add Fractions", "text": "What is 1/4 + 2/4?", "choices": ["3/8", "3/4", "2/8", "1/2"], "answer": 1, "solution": "Same denominator: 1/4 + 2/4 = 3/4."}, {"id": "f9", "type": "Fraction of Set", "text": "What is 1/4 of 20?", "choices": ["4", "5", "6", "8"], "answer": 1, "solution": "20 ÷ 4 = 5."}, {"id": "f10", "type": "Fraction of Set", "text": "What is 1/3 of 24?", "choices": ["6", "7", "8", "9"], "answer": 2, "solution": "24 ÷ 3 = 8."}, {"id": "f11", "type": "Equivalent", "text": "Which equals 4/6?", "choices": ["2/3", "1/3", "3/4", "4/12"], "answer": 0, "solution": "4/6 simplifies by dividing by 2: 2/3."}, {"id": "f12", "type": "Compare", "text": "Which is less: 2/5 or 4/5?", "choices": ["2/5", "4/5", "Equal", "Cannot tell"], "answer": 0, "solution": "Same denominator: 2/5 is less than 4/5."}, {"id": "f13", "type": "Fraction of Set", "text": "What is 1/5 of 35?", "choices": ["5", "6", "7", "8"], "answer": 2, "solution": "35 ÷ 5 = 7."}, {"id": "f14", "type": "Equivalent", "text": "Which fraction equals 2/3?", "choices": ["4/6", "3/6", "2/6", "6/2"], "answer": 0, "solution": "2/3 = 4/6."}, {"id": "f15", "type": "Subtract Fractions", "text": "What is 7/8 − 3/8?", "choices": ["4/8", "10/8", "3/8", "4/16"], "answer": 0, "solution": "Same denominator: 7/8 − 3/8 = 4/8."}]}, {"id": "timeMoney", "emoji": "🛒", "title": "Time & Money Market", "desc": "Elapsed time, money, change, and shopping math.", "questions": [{"id": "tm1", "type": "Time", "text": "How many minutes are in 2 hours?", "choices": ["60", "90", "120", "200"], "answer": 2, "solution": "1 hour = 60 minutes, so 2 hours = 120 minutes."}, {"id": "tm2", "type": "Elapsed Time", "text": "Class starts at 3:15 and ends at 4:00. How long is it?", "choices": ["30 min", "40 min", "45 min", "60 min"], "answer": 2, "solution": "From 3:15 to 4:00 is 45 minutes."}, {"id": "tm3", "type": "Money", "text": "What is $5.00 − $2.35?", "choices": ["$2.55", "$2.65", "$3.65", "$7.35"], "answer": 1, "solution": "$5.00 − $2.35 = $2.65."}, {"id": "tm4", "type": "Money", "text": "Four pencils cost 25¢ each. Total cost?", "choices": ["$0.75", "$1.00", "$1.25", "$2.50"], "answer": 1, "solution": "4 × 25¢ = 100¢ = $1.00."}, {"id": "tm5", "type": "Time", "text": "How many minutes are in half an hour?", "choices": ["15", "20", "30", "45"], "answer": 2, "solution": "Half of 60 minutes is 30 minutes."}, {"id": "tm6", "type": "Money", "text": "A toy costs $3.75. You pay $5.00. Change?", "choices": ["$1.00", "$1.25", "$1.35", "$2.25"], "answer": 1, "solution": "$5.00 − $3.75 = $1.25."}, {"id": "tm7", "type": "Elapsed Time", "text": "A game starts at 1:20 and lasts 50 minutes. When does it end?", "choices": ["1:50", "2:00", "2:10", "2:20"], "answer": 2, "solution": "1:20 + 50 minutes = 2:10."}, {"id": "tm8", "type": "Money", "text": "3 notebooks cost $2 each. Total cost?", "choices": ["$5", "$6", "$7", "$8"], "answer": 1, "solution": "3 × $2 = $6."}, {"id": "tm9", "type": "Time", "text": "How many seconds are in 3 minutes?", "choices": ["60", "120", "180", "300"], "answer": 2, "solution": "1 minute = 60 seconds, so 3 minutes = 180 seconds."}, {"id": "tm10", "type": "Money", "text": "Which is the same as 125¢?", "choices": ["$1.25", "$12.50", "$0.25", "$1.05"], "answer": 0, "solution": "125¢ = $1.25."}, {"id": "tm11", "type": "Elapsed Time", "text": "From 9:45 to 10:15 is how long?", "choices": ["15 min", "30 min", "45 min", "60 min"], "answer": 1, "solution": "9:45 to 10:00 is 15 minutes, then to 10:15 is 15 more. Total 30."}, {"id": "tm12", "type": "Money", "text": "You buy a $4 sandwich and a $2 drink. Total?", "choices": ["$5", "$6", "$7", "$8"], "answer": 1, "solution": "$4 + $2 = $6."}, {"id": "tm13", "type": "Time", "text": "How many minutes are in 3 hours?", "choices": ["120", "150", "180", "300"], "answer": 2, "solution": "3 × 60 = 180 minutes."}, {"id": "tm14", "type": "Money", "text": "A book costs $6.50. You pay $10.00. Change?", "choices": ["$2.50", "$3.50", "$4.50", "$16.50"], "answer": 1, "solution": "$10.00 − $6.50 = $3.50."}, {"id": "tm15", "type": "Elapsed Time", "text": "From 2:05 to 2:50 is how long?", "choices": ["35 min", "40 min", "45 min", "55 min"], "answer": 2, "solution": "2:05 to 2:50 is 45 minutes."}]}, {"id": "area", "emoji": "🏗️", "title": "Area Builder", "desc": "Area, perimeter, arrays, and rectangle puzzles.", "questions": [{"id": "a1", "type": "Area", "text": "A rectangle is 6 by 4. What is its area?", "choices": ["10", "20", "24", "28"], "answer": 2, "solution": "Area = length × width = 6 × 4 = 24."}, {"id": "a2", "type": "Perimeter", "text": "A rectangle is 7 by 3. What is its perimeter?", "choices": ["10", "20", "21", "24"], "answer": 1, "solution": "Perimeter = 7 + 3 + 7 + 3 = 20."}, {"id": "a3", "type": "Area", "text": "A square has side length 5. What is its area?", "choices": ["10", "20", "25", "30"], "answer": 2, "solution": "Area = 5 × 5 = 25."}, {"id": "a4", "type": "Perimeter", "text": "A square has side length 8. What is its perimeter?", "choices": ["16", "24", "32", "64"], "answer": 2, "solution": "Perimeter = 4 × 8 = 32."}, {"id": "a5", "type": "Area", "text": "A rectangle has area 36 and width 4. What is its length?", "choices": ["6", "8", "9", "12"], "answer": 2, "solution": "Length = area ÷ width = 36 ÷ 4 = 9."}, {"id": "a6", "type": "Perimeter", "text": "A rectangle is 10 by 2. What is its perimeter?", "choices": ["12", "20", "24", "40"], "answer": 2, "solution": "Perimeter = 10 + 2 + 10 + 2 = 24."}, {"id": "a7", "type": "Area", "text": "A rectangle is 9 by 3. What is its area?", "choices": ["12", "18", "27", "36"], "answer": 2, "solution": "Area = 9 × 3 = 27."}, {"id": "a8", "type": "Array", "text": "An array has 5 rows and 6 columns. How many objects?", "choices": ["11", "25", "30", "36"], "answer": 2, "solution": "5 × 6 = 30."}, {"id": "a9", "type": "Missing Side", "text": "Area is 48. One side is 6. Other side?", "choices": ["6", "7", "8", "9"], "answer": 2, "solution": "48 ÷ 6 = 8."}, {"id": "a10", "type": "Perimeter", "text": "A square has perimeter 28. What is one side length?", "choices": ["4", "7", "14", "28"], "answer": 1, "solution": "28 ÷ 4 = 7."}, {"id": "a11", "type": "Area", "text": "A rectangle is 12 by 5. What is area?", "choices": ["17", "34", "60", "120"], "answer": 2, "solution": "12 × 5 = 60."}, {"id": "a12", "type": "Perimeter", "text": "A rectangle is 4 by 9. What is perimeter?", "choices": ["13", "26", "36", "40"], "answer": 1, "solution": "4 + 9 + 4 + 9 = 26."}, {"id": "a13", "type": "Area", "text": "A rectangle is 8 by 8. What is area?", "choices": ["16", "32", "56", "64"], "answer": 3, "solution": "8 × 8 = 64."}, {"id": "a14", "type": "Perimeter", "text": "A rectangle is 11 by 4. What is perimeter?", "choices": ["15", "30", "44", "60"], "answer": 1, "solution": "11 + 4 + 11 + 4 = 30."}, {"id": "a15", "type": "Array", "text": "An array has 7 rows and 5 columns. How many objects?", "choices": ["12", "25", "35", "75"], "answer": 2, "solution": "7 × 5 = 35."}]}];
+
+const state = {
+  name:'',
+  currentMission:0,
+  currentQuestion:0,
+  selected:false,
+  score:0,
+  totalAnswered:0,
+  completed:{},
+  missed:[],
+  fixedIds:{}
+};
+
+function save(){localStorage.setItem('g4MathMissionNoVenn_v2', JSON.stringify(state));}
+function load(){
+  try{
+    const raw = localStorage.getItem('g4MathMissionNoVenn_v2');
+    if(raw) Object.assign(state, JSON.parse(raw));
+  }catch(e){}
+}
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  updateHome();
+}
+function getAllQuestions(){return missions.flatMap(m=>m.questions);}
+function questionById(id){return getAllQuestions().find(x=>x.id===id);}
+function allMissionsDone(){return missions.every(m=>state.completed[m.id]);}
+function unfixedMissed(){return state.missed.filter(id=>!state.fixedIds[id]);}
+function certificateReady(){return allMissionsDone() && unfixedMissed().length===0;}
+
+function updateHome(){
+  const nameEl = document.getElementById('studentName');
+  if(document.activeElement !== nameEl) nameEl.value = state.name || '';
+  const completedCount = missions.filter(m=>state.completed[m.id]).length;
+  const pct = Math.round((completedCount / missions.length) * 100);
+  document.getElementById('overallText').textContent = pct + '%';
+  document.getElementById('overallFill').style.width = pct + '%';
+  document.getElementById('topStatus').textContent = 'Missions: ' + completedCount + '/5 · Fixes needed: ' + unfixedMissed().length;
+  const grid = document.getElementById('missionGrid');
+  grid.innerHTML = missions.map((m,i)=>{
+    const done = state.completed[m.id];
+    return `<div class="mission-card">
+      <div><h3>${m.emoji} ${m.title}</h3><p>${m.desc}</p></div>
+      <div class="status">${done ? '✅ Complete' : '🔒 Not complete'}</div>
+      <button class="${done?'secondary':''}" onclick="startMission(${i})">${done?'Replay':'Start'}</button>
+    </div>`;
+  }).join('');
+  const ready = certificateReady();
+  document.getElementById('certBtn').disabled = !ready;
+  document.getElementById('unlockWarning').textContent = ready
+    ? 'Certificate unlocked! Show it to your teacher.'
+    : 'Certificate locked: finish all missions and clear Fix Station.';
+}
+
+function startGame(){
+  state.name = document.getElementById('studentName').value.trim() || 'Student';
+  save();
+  const first = missions.findIndex(m=>!state.completed[m.id]);
+  startMission(first >= 0 ? first : 0);
+}
+
+function startMission(i){
+  state.name = document.getElementById('studentName').value.trim() || state.name || 'Student';
+  state.currentMission = i;
+  state.currentQuestion = 0;
+  state.selected = false;
+  state.score = 0;
+  save();
+  show('play');
+  renderQuestion();
+}
+
+function renderQuestion(){
+  const m = missions[state.currentMission];
+  const cur = state.currentQuestion;
+  const item = m.questions[cur];
+  document.getElementById('missionKicker').textContent = 'Mission ' + (state.currentMission + 1);
+  document.getElementById('missionTitle').textContent = m.emoji + ' ' + m.title;
+  document.getElementById('missionDesc').textContent = m.desc;
+  document.getElementById('qNumber').textContent = (cur + 1) + '/' + m.questions.length;
+  document.getElementById('scoreBox').textContent = state.score;
+  document.getElementById('fixCountBox').textContent = unfixedMissed().length;
+  document.getElementById('missionStatusBox').textContent = state.completed[m.id] ? 'Complete' : 'Play';
+  const pct = Math.round((cur / m.questions.length) * 100);
+  document.getElementById('missionProgressText').textContent = pct + '%';
+  document.getElementById('missionFill').style.width = pct + '%';
+  document.getElementById('qType').textContent = item.type;
+  document.getElementById('questionText').textContent = item.text;
+  document.getElementById('questionHint').textContent = 'Choose the best answer.';
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('nextBtn').classList.add('hidden');
+  document.getElementById('finishMissionBtn').classList.add('hidden');
+  state.selected = false;
+  const choices = document.getElementById('choices');
+  choices.innerHTML = item.choices.map((c,i)=>`<button class="choice" onclick="answerQuestion(${i})">${String.fromCharCode(65+i)}) ${c}</button>`).join('');
+}
+
+function answerQuestion(choiceIndex){
+  if(state.selected) return;
+  state.selected = true;
+  const m = missions[state.currentMission];
+  const item = m.questions[state.currentQuestion];
+  const buttons = [...document.querySelectorAll('.choice')];
+  buttons.forEach((b,i)=>{
+    if(i === item.answer) b.classList.add('correct');
+    if(i === choiceIndex && i !== item.answer) b.classList.add('wrong');
+  });
+  const fb = document.getElementById('feedback');
+  if(choiceIndex === item.answer){
+    state.score++;
+    fb.className = 'feedback good show';
+    fb.innerHTML = '<strong>Correct!</strong><br>' + item.solution;
+  }else{
+    if(!state.missed.includes(item.id)) state.missed.push(item.id);
+    delete state.fixedIds[item.id];
+    fb.className = 'feedback bad show';
+    fb.innerHTML = '<strong>Fix later.</strong><br>' + item.solution;
+  }
+  state.totalAnswered++;
+  save();
+  if(state.currentQuestion === m.questions.length - 1) document.getElementById('finishMissionBtn').classList.remove('hidden');
+  else document.getElementById('nextBtn').classList.remove('hidden');
+}
+
+function nextQuestion(){
+  state.currentQuestion++;
+  save();
+  renderQuestion();
+}
+
+function finishMission(){
+  const m = missions[state.currentMission];
+  state.completed[m.id] = true;
+  save();
+  goHome();
+}
+
+function goHome(){show('home')}
+
+function openFixStation(){
+  show('fix');
+  renderFixStation();
+}
+
+function renderFixStation(){
+  const area = document.getElementById('fixArea');
+  const ids = unfixedMissed();
+  if(ids.length===0){
+    area.innerHTML = `<div class="warn">Fix Station is clear. Great job!</div>`;
+    return;
+  }
+  area.innerHTML = `<div class="fix-list">` + ids.map(id=>{
+    const item = questionById(id);
+    return `<div class="fix-item" id="fix-${id}">
+      <strong>${item.type}</strong>
+      <div style="font-size:22px;font-weight:900;margin:8px 0">${item.text}</div>
+      <div class="choices">${item.choices.map((c,i)=>`<button class="choice" onclick="fixAnswer('${id}',${i})">${String.fromCharCode(65+i)}) ${c}</button>`).join('')}</div>
+      <div class="feedback" id="fixfb-${id}"></div>
+    </div>`;
+  }).join('') + `</div>`;
+}
+
+function fixAnswer(id, choiceIndex){
+  const item = questionById(id);
+  const box = document.getElementById('fix-' + id);
+  const buttons = [...box.querySelectorAll('.choice')];
+  buttons.forEach((b,i)=>{
+    b.classList.remove('correct','wrong');
+    if(i === item.answer) b.classList.add('correct');
+    if(i === choiceIndex && i !== item.answer) b.classList.add('wrong');
+  });
+  const fb = document.getElementById('fixfb-' + id);
+  if(choiceIndex === item.answer){
+    state.fixedIds[id] = true;
+    save();
+    fb.className = 'feedback good show';
+    fb.innerHTML = '<strong>Fixed!</strong><br>' + item.solution;
+    setTimeout(renderFixStation, 650);
+  }else{
+    fb.className = 'feedback bad show';
+    fb.innerHTML = '<strong>Try again.</strong><br>Read the solution carefully: ' + item.solution;
+  }
+  updateHome();
+}
+
+function openCertificate(){
+  if(!certificateReady()){
+    alert('Certificate is still locked. Finish all missions and fix all missed questions first.');
+    return;
+  }
+  const name = state.name || document.getElementById('studentName').value.trim() || 'Student';
+  state.name = name;
+  save();
+  const now = new Date();
+  const code = 'G4-' + now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-' + String(name.length + state.totalAnswered);
+  document.getElementById('certName').textContent = name;
+  document.getElementById('certDate').textContent = 'Date: ' + now.toLocaleDateString();
+  document.getElementById('certCode').textContent = code;
+  show('certificate');
+}
+
+function resetAll(){
+  if(!confirm('Reset this game on this device?')) return;
+  localStorage.removeItem('g4MathMissionNoVenn_v2');
+  Object.assign(state, {name:'',currentMission:0,currentQuestion:0,selected:false,score:0,totalAnswered:0,completed:{},missed:[],fixedIds:{}});
+  updateHome();
+}
+
+load();
+updateHome();
+</script>
+</body>
+</html>
